@@ -1,4 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+# Filename: passwords.py
+
+#=====================================================================#
+# Copyright (c) 2015 Bradley Hilton <bradleyhilton@bradleyhilton.com> #
+# Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
+#=====================================================================#
 
 import base64
 import getpass

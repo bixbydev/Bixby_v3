@@ -1,13 +1,24 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+# Filename: services.py
+
+#=====================================================================#
+# Copyright (c) 2015 Bradley Hilton <bradleyhilton@bradleyhilton.com> #
+# Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
+#=====================================================================#
 
 
 # PyDocs https://google-api-client-libraries.appspot.com/documentation/admin/directory_v1/python/latest/admin_directory_v1.users.html
 # The JSON request https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#create_user
 # This script https://developers.google.com/admin-sdk/directory/v1/quickstart/quickstart-python#step_2_install_the_google_client_library
 
-import config
-import auth
 from apiclient.discovery import build
+
+from logger.log import log
+from config import config
+import auth
+
+log.info('Starting The Bixby Log')
 
 
 # This is the worker bee.

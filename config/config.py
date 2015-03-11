@@ -1,4 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+# Filename: config.py
+
+#=====================================================================#
+# Copyright (c) 2015 Bradley Hilton <bradleyhilton@bradleyhilton.com> #
+# Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
+#=====================================================================#
 
 
 # To-Do: 20150310
@@ -7,22 +14,25 @@
 # https://github.com/django/django/blob/master/django/contrib/auth/hashers.py#L216
 
 
+
 import ConfigParser
 import getpass
 
+from logger.log import log
+
+log.debug('The Config File is Logging')
 
 PASSWORD_SALT = None
 
 # Set Scope GtestGoogleApps or GoogleApps
-GSCOPE = 'GoogleApps'
-# GSCOPE = 'GtestGoogleApps'
+# GSCOPE = 'GoogleApps'
+GSCOPE = 'GtestGoogleApps'
 
 CONFIG_FILE = 'config/config.ini' # To-Do: Move this somewhere else
 
 config = ConfigParser.ConfigParser(allow_no_value=True)
 config.read(CONFIG_FILE)
 
-# domain = config.get('GoogleApps', 'primarydomain')
 
 PRIMARY_DOMAIN = config.get(GSCOPE, 'PRIMARY_DOMAIN')
 STUDENT_DOMAIN = config.get(GSCOPE, 'STUDENT_DOMAIN')
@@ -37,14 +47,10 @@ MYSQL_PASSWORD = config.get('MySQL', 'password')
 # 	MYSQL_PASSWORD = getpass.getpass('Please enter the MySQL User Password: ')
 # 	# MYSQL_PASSWORD = MYSQL_PASSWORD
 # 
-# print MYSQL_PASSWORD
-
 
 
 def main():
 	pass
-
-
 
 
 if __name__ == '__main__':
