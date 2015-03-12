@@ -14,8 +14,9 @@ import logging.handlers
 
 # The old Logging Facility works beautifully!
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - [%(levelname)s] - %(filename)s - %(message)s')
+log.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+		"""%(asctime)s - [%(levelname)s] - %(filename)s - %(message)s""")
 
 # Log to File/File Handler
 fhandler = logging.FileHandler('logs/Bixby.log')

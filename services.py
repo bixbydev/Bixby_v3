@@ -35,12 +35,14 @@ class GoogleUsers(object):
 def TestGoogleUsersClass():
 	# To-Do: Remove this test function
 	gus = GoogleUsers()
-	gus.userservice.list(customer='my_customer', domain=services.config.PRIMARY_DOMAIN).execute()
+	gus.userservice.list(customer='my_customer',
+						 domain=services.config.PRIMARY_DOMAIN).execute()
 		
 
 
 def paginate():
-	"""This is going to be damn useful. I wonder if this is where a decorator would be handy?"""
+	"""This is going to be darn useful. I wonder if this is where a decorator 
+		would be handy?"""
 	users = directory_service.users()
 	params = {'customer': 'my_customer', 'domain': config.PRIMARY_DOMAIN }
 	request = users.list(**params)

@@ -27,7 +27,7 @@ OAUTH_SCOPE = """https://www.googleapis.com/auth/admin.directory.user\
 # Redirect URI for installed apps
 # You must create a secret for native application
 REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
-# REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob:auto' # Does not require user to copy code.
+# REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob:auto' # Does not prompt for code?
 
 # Run through the OAuth flow and retrieve credentials
 flow = OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET, OAUTH_SCOPE, REDIRECT_URI)
