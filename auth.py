@@ -1,11 +1,9 @@
 #!/usr/bin/python
 
-
 # Notes: To-Do: Remove 20150310
 # PyDocs https://google-api-client-libraries.appspot.com/documentation/admin/directory_v1/python/latest/admin_directory_v1.users.html
 # The JSON request https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#create_user
 # This script https://developers.google.com/admin-sdk/directory/v1/quickstart/quickstart-python#step_2_install_the_google_client_library
-
 
 import httplib2
 
