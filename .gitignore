@@ -6,3 +6,5 @@
 config/config.ini
 
 *.log
+*.json
+DevelopmentNotes.txt
