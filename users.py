@@ -9,16 +9,19 @@
 
 
 import json
+from config import config
 
+STAFF_DOMAIN = config.STAFF_DOMAIN
+STUDENT_DOMAIN = config.STUDENT_DOMAIN
 
 class UserType(object):
 	def __init__(self, user_type=None):
 		if user_type == 'Staff':
 			# TODO (bixbydev): Get domain from config
-			domain = 'gtest.example.net'
+			domain = STAFF_DOMAIN
 		else:
 			user_type = 'Student'
-			domain = 'students.gtest.example.net'
+			domain = STUDENT_DOMAIN
 
 		self.user_type = user_type
 		self.domain = domain
@@ -29,7 +32,7 @@ class ExternalIds(UserType):
 		UserType.__init__(self, user_type)
 
 
-class AppsUser(UserType):
+class User(UserType):
 	"""docstring for Users"""
 	def __init__(self,
 				 username, 
@@ -40,8 +43,8 @@ class AppsUser(UserType):
 				 external_userid=None, 
 				 password=None,
 				 suspended=False,
-				 change_password=False
-				 org_unit='/Disabled Users',
+				 change_password=False,
+				 org_unit='/Disabled Users'
 				):
 		# Proof of concept
 		self.ut = UserType(user_type)
@@ -57,23 +60,61 @@ class AppsUser(UserType):
 		self.suspended = suspended
 		self.org_unit = org_unit
 
+	def add_email(self):
+		pass
 
 	def json_request(self):
-		user_dict = {}
-		user_dict['primaryEmail'] = self.full_email_address
-		user_dict['name'] = {'givenName': self.given_name,
+		udict = {}
+		udict['primaryEmail'] = self.full_email_address
+		udict['name'] = {'givenName': self.given_name,
 							'familyName': self.family_name}
-		user_dict['suspended'] = self.suspended
+		udict['suspended'] = self.suspended
 		if self.password:
-			user_dict['password'] = self.password
-		user_dict['emails'] = {'address': self.full_email_address,
+			udict['password'] = self.password
+		udict['emails'] = {'address': self.full_email_address,
 								'type': "work",
 								'customType': "",
 								'primary': True}
-		user_dict['orgUnitPath'] = self.org_unit
-		self.user_dict = user_dict
+		udict['orgUnitPath'] = self.org_unit
+		self.udict = udict
 
 	def _add_googleid(self, googleid):
+		pass
+
+
+class UserFromJSON(object):
+	def __init__(self, json_dict):
+		assert(type(json_dict)) == dict
+		self.json_dict = json_dict
+		self.username = json_dict.get('primaryEmail')
+		self.name = json_dict.get('name')
+		if self.name:
+			self.given_name = self.name.get('givenName')
+			self.family_name = self.name.get('familyName')
+		else:
+			self.given_name = None
+			self.family_name = None
+
+		self.external_userid = json_dict.get('externalIds')
+		if self.external_userid:
+			for uid in self.external_userid:
+				print uid # TODO (bixbydev): Eventually this will do soemthing
+
+		self.password = json_dict.get('password')
+		# Neat little hack. If the value isn't true it returns false
+		self.change_password = (json_dict.get('changePasswordAtNextLogin') == True)
+		self.suspended = (json_dict.get('suspended') == True)
+		self.emails = json_dict.get('emails')
+		for email in self.emails:
+			print email
+		self.email_aliases = self.json_dict.get('aliases')
+		self.google_id = self.json_dict.get('id')
+
+
+
+
+		
+
 
 
 
