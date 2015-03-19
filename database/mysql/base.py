@@ -45,8 +45,32 @@ def restore_mysql(db, sqlfile):
 
 	log.info("Restoring DB: %s from File: %s" %(db, sqlfile))	
 	os.system("""mysql -h '%s' -u '%s' -p'%s' '%s' < %s""" \
-													%(config.MySQL_Host,
-													  config.MySQL_User, 
-													  config.MySQL_Password,
+													%(config.MYSQL_HOST,
+													  config.MYSQL_USER, 
+													  config.MYSQL_PASSWORD,
 															  db, sqlfile))
 
+
+class CursorWrapper(object):
+	"""Wrapper to open a MySQL Connection and creates a Cursor"""
+	def __init__(self, host=config.MYSQL_HOST,
+                       user=config.MYSQL_USER,
+                       passwd=config.MYSQL_PASSWORD,
+                       db=config.MYSQL_DB):
+
+		self.example = 'Testing'
+		self.connection = MySQLdb.connect (host = host,
+                       						user = user,
+                       						passwd = passwd,
+                       						db = db)
+		self.cursor = self.connection.cursor()
+		log.info("""Setting autocommit = \"True\"""")
+		self.connection.autocommit(True)
+		log.info("Connected to MySQL Host: %s Database: %s" % (host, db))
+
+	def close(self):
+		self.cursor.close()
+		log.info('MySQL Cursor Closed')
+		# self.connection.commit()
+		self.connection.close()
+		log.info('MySQL Connection Closed')
