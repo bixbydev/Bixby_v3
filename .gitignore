@@ -1,10 +1,15 @@
 *.pyc
 *.ini
+*.log
+*.json
+*.sql
+
 *.sublime-project
 *.sublime-workspace
 
+DevelopmentNotes.txt
+BatchAdd.txt
+
 config/config.ini
 
-*.log
-*.json
-DevelopmentNotes.txt
+
