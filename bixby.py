@@ -16,13 +16,14 @@ from apiclient.discovery import build
 
 from logger.log import log
 from config import config
-import auth
+from gservice import auth
 
 log.info('Starting The Bixby Log')
 
 
 # This is the worker bee.
-directory_service = build('admin', 'directory_v1', http=auth.http)
+directory_service = build(serviceName='admin', version='directory_v1',
+							http=auth.http)
 
 
 class GoogleUsers(object):

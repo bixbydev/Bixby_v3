@@ -25,6 +25,10 @@ CONFIG_FILE = 'config/config.ini' # To-Do: Move this somewhere else
 config = ConfigParser(allow_no_value=True)
 config.read(CONFIG_FILE)
 
+APPLICATION_NAME = config.get('Bixby', 'agent_name')
+APPLICATION_VERSION = config.get('Bixby', 'version')
+
+
 PASSWORD_SALT = None
 
 # Google Service Configuration Section

@@ -9,10 +9,15 @@
 
 
 import json
+from datetime import datetime
 from config import config
 
 STAFF_DOMAIN = config.STAFF_DOMAIN
 STUDENT_DOMAIN = config.STUDENT_DOMAIN
+
+def date_obj_from_ISO8601(iso8601s):
+	"""Returns datetime object from iso8601 string in Google JSON response"""
+	return datetime.strptime(iso861s, '%Y-%m-%dT%H:%M:%S.000Z')
 
 class UserType(object):
 	def __init__(self, user_type=None):
@@ -32,8 +37,8 @@ class ExternalIds(UserType):
 		UserType.__init__(self, user_type)
 
 
-class User(UserType):
-	"""docstring for Users"""
+class NewUser(UserType):
+	"""docstring for NewUsers"""
 	def __init__(self,
 				 username, 
 				 given_name, 
@@ -60,10 +65,7 @@ class User(UserType):
 		self.suspended = suspended
 		self.org_unit = org_unit
 
-	def add_email(self):
-		pass
-
-	def json_request(self):
+	def user_json(self):
 		udict = {}
 		udict['primaryEmail'] = self.full_email_address
 		udict['name'] = {'givenName': self.given_name,
@@ -75,11 +77,9 @@ class User(UserType):
 								'type': "work",
 								'customType': "",
 								'primary': True}
+		udict['externalIds'] = {} # TODO (bixbydev): uid Structure
 		udict['orgUnitPath'] = self.org_unit
 		self.udict = udict
-
-	def _add_googleid(self, googleid):
-		pass
 
 
 class UserFromJSON(object):
@@ -109,13 +109,5 @@ class UserFromJSON(object):
 			print email
 		self.email_aliases = self.json_dict.get('aliases')
 		self.google_id = self.json_dict.get('id')
-
-
-
-
-		
-
-
-
 
 
