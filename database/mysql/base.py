@@ -30,13 +30,15 @@ def backup_mysql():
 	"""Backups the DB until things get very large I am going to do this every 
 		time. Or until I am sure my code is good."""
 	dnsdt = str(time.strftime('%Y%m%d%H%M%S', time.localtime()))
-	log.info("""Creating mysqldump: PS_PY_Dev_Back.'%s'.sql""" %dnsdt)
-	os.system("""mysqldump -h '%s' -u '%s' -p'%s' '%s' > '%s'.'%s'.sql""" \
+	dump_file = os.path.join(config.MYSQL_BACKUPPATH
+							, config.MYSQL_DB+'_bak_'+dnsdt+'.sql')
+	log.info("""Creating mysqldump: '%s'""" %dump_file)
+	os.system("""mysqldump -h '%s' -u '%s' -p'%s' '%s' > '%s'""" \
 														%(config.MYSQL_HOST,
 														  config.MYSQL_USER, 
 														  config.MYSQL_PASSWORD,
 														  config.MYSQL_DB, 
-														  dnsdt))
+														  dump_file))
 
 def restore_mysql(db, sqlfile):
 	if not os.path.exists(sqlfile):
@@ -74,3 +76,4 @@ class CursorWrapper(object):
 		# self.connection.commit()
 		self.connection.close()
 		log.info('MySQL Connection Closed')
+
