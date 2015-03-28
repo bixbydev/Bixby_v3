@@ -15,7 +15,7 @@ from config import config
 STAFF_DOMAIN = config.STAFF_DOMAIN
 STUDENT_DOMAIN = config.STUDENT_DOMAIN
 
-def date_obj_from_ISO8601(iso8601s):
+def datetime_obj_from_ISO8601(iso8601s):
 	"""Returns datetime object from iso8601 string in Google JSON response"""
 	return datetime.strptime(iso861s, '%Y-%m-%dT%H:%M:%S.000Z')
 
