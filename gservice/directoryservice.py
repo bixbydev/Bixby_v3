@@ -1,4 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+# Filename: directoryservice.py
+
+#=====================================================================#
+# Copyright (c) 2015 Bradley Hilton <bradleyhilton@bradleyhilton.com> #
+# Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
+#=====================================================================#
+
+
 
 # Notes: To-Do: Remove 20150310
 # PyDocs https://google-api-client-libraries.appspot.com/documentation/admin/directory_v1/python/latest/admin_directory_v1.users.html
@@ -8,6 +17,7 @@
 import httplib2
 
 from apiclient import errors
+from apiclient.discovery import build
 # from apiclient.discovery import build
 from oauth2client.file import Storage
 from oauth2client.client import OAuth2WebServerFlow
@@ -31,6 +41,7 @@ OAUTH_SCOPE = """https://www.googleapis.com/auth/admin.directory.user\
 REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 # REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob:auto' # Does not prompt for code?
 
+# Bixby's User Agent String
 USER_AGENT = config.APPLICATION_NAME+'/'+config.APPLICATION_VERSION
 
 
@@ -58,6 +69,21 @@ if credentials is None or credentials.invalid == True:
 http = httplib2.Http()
 http = credentials.authorize(http)
 
-print config.PRIMARY_DOMAIN
+
+
+class DirectoryService(object):
+	def __init__(self):
+		# This is the worker bee.
+		self.directory_service = build(serviceName='admin', 
+									version='directory_v1',
+									http=http)
+		print 'Connected to Domain: %s' %(config.PRIMARY_DOMAIN)
+
+	def orgunits(self):
+		return self.directory_service.orgunits()
+
+	def users(self):
+		return self.directory_service.users()
+
 
 

@@ -12,24 +12,124 @@ import json
 from datetime import datetime
 from config import config
 
+
 STAFF_DOMAIN = config.STAFF_DOMAIN
 STUDENT_DOMAIN = config.STUDENT_DOMAIN
 
-def datetime_obj_from_ISO8601(iso8601s):
+GTIME_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
+GEXPIRY_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
+
+user_map = {'bixbyId': 'ID',
+			 'suspended': 'SUSPENDED',
+			 'primaryEmail': 'PRIMARY_EMAIL',
+			 'creationTime': 'CREATION_DATE',
+			 'id': 'GOOGLE_ID',
+			 'includeInGlobalAddressList': 'GLOBAL_ADDRESSBOOK',
+			 'lastLoginTime': 'LASTLOGIN_DATE',
+			 'familyName': 'LAST_NAME',
+			 'givenName': 'FIRST_NAME',
+			 'orgUnitPath': 'OU_PATH',
+			 'changePasswordAtNextLogin': 'CHANGE_PASSWORD',
+			 'externalIds': 'EXTERNAL_UID',
+			 'etag': 'ETAG'}
+
+
+def return_datetime(iso8601s):
 	"""Returns datetime object from iso8601 string in Google JSON response"""
-	return datetime.strptime(iso861s, '%Y-%m-%dT%H:%M:%S.000Z')
+	try:
+		return datetime.strptime(iso861s, GTIME_FORMAT)
+	except ValueError:
+		"""Handles the Google Oauth Expiry Format"""
+		return datetime.strptime(iso861s, GEXPIRY_FORMAT)
+
+
+
+
 
 class UserType(object):
+	USER_TYPE_MAP = {u'staff': 
+						{u'userTypeId': 1,
+							u'domain': STAFF_DOMAIN,
+							u'defaultOU': u'Staff'},
+						u'student': {u'userTypeId': 2,
+							u'domain': STUDENT_DOMAIN,
+							u'defaultOU': u'Schools'} 
+						}
+	user_type_map = config.USER_TYPE_MAP
+	# user_type_map = config.USER_TYPE_MAP
 	def __init__(self, user_type=None):
-		if user_type == 'Staff':
-			# TODO (bixbydev): Get domain from config
-			domain = STAFF_DOMAIN
-		else:
-			user_type = 'Student'
-			domain = STUDENT_DOMAIN
-
 		self.user_type = user_type
-		self.domain = domain
+		self.domain = self.user_type_map[user_type]['domain']
+		self.user_type_id = self.user_type_map[user_type]['userTypeId']
+		self.default_org_unit = self.user_type_map[user_type]['defaultOU']
+
+
+
+
+
+class BaseUser(UserType):
+	*"""docstring for BaseUser"""
+	def __init__(self,
+				 primary_email, 
+				 given_name, 
+				 family_name,
+				 user_type=None,
+				 external_uid=None, 
+				 password=None,
+				 suspended=False,
+				 change_password=False,
+				 org_unit='/Schools'
+				):
+		UserType.__init__(user_type)
+		self.primary_email = primary_email
+		self.full_email_address = self.username + '@' + self.ut.domain
+		self.given_name = given_name # First_Name
+		self.family_name = family_name # Last_Name
+		self.external_userid = external_userid
+		self.password = password
+		self.suspended = suspended
+		self.org_unit = org_unit
+
+
+	def user_object(self):
+		pass
+
+
+class UserFromJSON(object):
+	def __init__(self, data):
+		assert(type(data)) == dict
+		self.data = data
+		self.username = data.get('primaryEmail')
+		self.name = data.get('name')
+		if self.name:
+			self.given_name = self.name.get('givenName')
+			self.family_name = self.name.get('familyName')
+		else:
+			self.given_name = None
+			self.family_name = None
+
+		self.external_uid = data.get('externalIds')
+		if self.external_uid:
+			for uid in self.external_uid:
+				print uid.get('customType'), uid.get('value')  # TODO (bixbydev): Eventually this will do soemthing
+
+		self.password = data.get('password')
+		
+		self.change_password = (data.get('changePasswordAtNextLogin') == True)
+		self.suspended = (data.get('suspended') == True)
+		self.emails = data.get('emails')
+		for email in self.emails:
+			print email
+		self.email_aliases = self.data.get('aliases')
+		self.google_id = self.data.get('id')
+
+
+
+
+
+
+
 
 
 class ExternalIds(UserType):
@@ -82,7 +182,7 @@ class NewUser(UserType):
 		self.udict = udict
 
 
-class UserFromJSON(object):
+class OldUserFromJSON(object):
 	def __init__(self, json_dict):
 		assert(type(json_dict)) == dict
 		self.json_dict = json_dict

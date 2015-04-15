@@ -12,41 +12,29 @@
 # The JSON request https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#create_user
 # This script https://developers.google.com/admin-sdk/directory/v1/quickstart/quickstart-python#step_2_install_the_google_client_library
 
-from apiclient.discovery import build
+from googleapiclient.model import makepatch
 
 from logger.log import log
 from config import config
-from gservice import auth
+from gservice.directoryservice import DirectoryService
 
-log.info('Starting The Bixby Log')
+from database import queries
 
-
-# This is the worker bee.
-directory_service = build(serviceName='admin', version='directory_v1',
-							http=auth.http)
+log.info('Starting Services')
 
 
-class GoogleUsers(object):
-	# Maybe this should inharrit from apiclient.discovery
-	def __init__(self):
-		self.userservice = directory_service.users()
+ds = DirectoryService()
+us = ds.users()
 
 
 
-def TestGoogleUsersClass():
-	# To-Do: Remove this test function
-	gus = GoogleUsers()
-	gus.userservice.list(customer='my_customer',
-						 domain=services.config.PRIMARY_DOMAIN).execute()
-		
-
-
-def paginate():
+def paginate(service_object):
 	"""This is going to be darn useful. I wonder if this is where a decorator 
 		would be handy?"""
-	users = directory_service.users()
-	params = {'customer': 'my_customer', 'domain': config.PRIMARY_DOMAIN }
-	request = users.list(**params)
+	params = {'customer': 'my_customer',
+            'domain': config.PRIMARY_DOMAIN,
+             'viewType': 'admin_view'}
+	request = service_object.list(**params)
 	all_pages = []
 	pages = 0
 
@@ -58,9 +46,11 @@ def paginate():
 
 		all_pages.extend(current_page['users'])
 
-		request = users.list_next(request, current_page)
+		request = service_object.list_next(request, current_page)
 
 	return all_pages
+
+	
 
 
 
