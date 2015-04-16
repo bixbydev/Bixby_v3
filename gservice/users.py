@@ -96,6 +96,12 @@ class BaseUser(UserType):
 		pass
 
 
+
+
+
+
+
+
 class UserFromJSON(object):
 	def __init__(self, data):
 		assert(type(data)) == dict

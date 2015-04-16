@@ -59,3 +59,50 @@ get_students_from_sis = """SELECT id STUDENTID
 						ORDER BY id
 						"""
 
+# MySQL Queries
+insert_staff_py = """INSERT INTO STAFF_PY (STAFFID
+						, SCHOOLID
+						, TEACHERNUMBER
+						, CERTIFICATED
+						, FIRST_NAME
+						, LAST_NAME
+						, MIDDLE_NAME
+						, GENDER
+						, EXTERNAL_USERSTATUS
+						, STAFF_TYPE						
+						, SUSPEND_ACCOUNT
+						, BUSD_Email
+						, BUSD_Email_Address
+						, Staff_Conference)
+						VALUES(%s, %s, %s, %s, %s
+							, %s, %s, %s, %s, %s
+							, %s, %s, %s, %s)"""
+
+
+
+
+insert_students_py = """INSERT INTO STUDENTS_PY (STUDENTID
+											, SCHOOLID
+											, STUDENT_NUMBER
+											, FIRST_NAME
+											, LAST_NAME
+											, MIDDLE_NAME
+											, DOB
+											, GENDER
+											, GRADE_LEVEL
+											, HOME_ROOM
+											, AREA
+											, ENTRYDATE
+											, EXITDATE
+											, EXTERNAL_USERSTATUS
+											, SUSPEND_ACCOUNT
+											, EMAIL_OVERRIDE
+											, STUDENT_WEB_ID
+											, PARENT_WEB_ID
+											) 
+									VALUES (%s, %s, %s, %s, %s
+											, %s, %s, %s, %s, %s
+											, %s, %s, %s, %s, %s
+											, %s, %s, %s)"""
+
+
