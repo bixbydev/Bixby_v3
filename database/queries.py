@@ -8,30 +8,30 @@
 #=====================================================================#
 
 
-
-get_staff_from_sis = """SELECT t.id
-					, t.schoolid
-					, t.teachernumber
-					, CASE WHEN ps_customfields.getcf(\'teachers\',t.id,\'CA_SEID\') IS NOT NULL THEN 1 ELSE 0 END CERTIFICATED
-					, t.first_name
-					, t.last_name
-					, t.middle_name
-					, ps_customfields.getcf(\'teachers\',t.id,\'gender\') gender
-					, CASE WHEN t.status = 1 THEN 0 ELSE 2 END EXTERNAL_USERSTATUS
-					, t.staffstatus STAFF_TYPE
-					, CASE WHEN ps_customfields.getcf(\'teachers\',t.id,\'BUSD_NoEmail\')=1 THEN 1
-						ELSE 0 END SUSPEND_ACCOUNT
-					, CASE WHEN ps_customfields.getcf(\'teachers\',t.id,\'BUSD_Email\')=1 THEN 1
-						ELSE 0 END BUSD_Email
-					, ps_customfields.getcf(\'teachers\',t.id,\'BUSD_Email_Address\')
-					, CASE WHEN ps_customfields.getcf(\'teachers\',t.id,\'CA_SEID\') IS NOT NULL THEN 1
-  						ELSE 2 END STAFF_CONFERENCE 
-					FROM teachers t
-					WHERE t.staffstatus IS NOT NULL
-					AND t.schoolid = t.homeschoolid
-					AND t.first_name IS NOT NULL -- Remove for Production Version Fix
-					AND t.last_name IS NOT NULL  -- Remove for Production Version Fix
-					"""
+get_staff_from_sis = """SELECT t.USERS_DCID PS_DCID
+, t.id
+, t.schoolid
+, t.teachernumber
+, CASE WHEN ps_customfields.getcf('teachers',t.id,'CA_SEID') IS NOT NULL THEN 1 ELSE 0 END CERTIFICATED
+, t.first_name
+, t.last_name
+, t.middle_name
+, ps_customfields.getcf('teachers',t.id,'gender') gender
+, CASE WHEN t.status = 1 THEN 0 ELSE 2 END EXTERNAL_USERSTATUS
+, t.staffstatus STAFF_TYPE
+, CASE WHEN ps_customfields.getcf('teachers',t.id,'BUSD_NoEmail')=1 THEN 1
+	ELSE 0 END SUSPEND_ACCOUNT
+, CASE WHEN ps_customfields.getcf('teachers',t.id,'BUSD_Email')=1 THEN 1
+	ELSE 0 END BUSD_Email
+, ps_customfields.getcf('teachers',t.id,'BUSD_Email_Address')
+, CASE WHEN ps_customfields.getcf('teachers',t.id,'CA_SEID') IS NOT NULL THEN 1
+	ELSE 2 END STAFF_CONFERENCE 
+FROM teachers t
+WHERE t.staffstatus IS NOT NULL
+	AND t.schoolid = t.homeschoolid
+	AND t.first_name IS NOT NULL -- Remove for Production Version Fix
+	AND t.last_name IS NOT NULL  -- Remove for Production Version Fix
+	"""
 
 get_students_from_sis = """SELECT id STUDENTID
 						, SCHOOLID
@@ -60,7 +60,8 @@ get_students_from_sis = """SELECT id STUDENTID
 						"""
 
 # MySQL Queries
-insert_staff_py = """INSERT INTO STAFF_PY (STAFFID
+insert_staff_py = """INSERT INTO STAFF_PY (PS_DCID
+						, STAFFID
 						, SCHOOLID
 						, TEACHERNUMBER
 						, CERTIFICATED
@@ -74,7 +75,7 @@ insert_staff_py = """INSERT INTO STAFF_PY (STAFFID
 						, BUSD_Email
 						, BUSD_Email_Address
 						, Staff_Conference)
-						VALUES(%s, %s, %s, %s, %s
+						VALUES(%s, %s, %s, %s, %s, %s
 							, %s, %s, %s, %s, %s
 							, %s, %s, %s, %s)"""
 

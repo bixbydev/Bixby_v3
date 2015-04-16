@@ -36,7 +36,6 @@ class CursorWrapper(object):
 		except cx_Oracle.DatabaseError, e:
 			log.exception(e)
 
-
 	def close(self):
 		try:
 			self.cursor
