@@ -44,98 +44,130 @@ def return_datetime(iso8601s):
 		return datetime.strptime(iso861s, GEXPIRY_FORMAT)
 
 
-
-
-
 class UserType(object):
-	USER_TYPE_MAP = {u'staff': 
+	USER_TYPE_DEFAULTS = {u'staff': 
 						{u'userTypeId': 1,
 							u'domain': STAFF_DOMAIN,
-							u'defaultOU': u'Staff'},
+							u'defaultOU': u'Staff',
+							u'change_password': True,
+							u'external_uid_name': 'staff'},
 						u'student': {u'userTypeId': 2,
 							u'domain': STUDENT_DOMAIN,
-							u'defaultOU': u'Schools'} 
+							u'defaultOU': u'Schools',
+							u'change_password': False,
+							u'external_uid_name': 'student'}
 						}
-	user_type_map = config.USER_TYPE_MAP
+	user_type_map = USER_TYPE_DEFAULTS
 	# user_type_map = config.USER_TYPE_MAP
 	def __init__(self, user_type=None):
 		self.user_type = user_type
 		self.domain = self.user_type_map[user_type]['domain']
 		self.user_type_id = self.user_type_map[user_type]['userTypeId']
 		self.default_org_unit = self.user_type_map[user_type]['defaultOU']
-
-
-
+		self.change_password = self.user_type_map[user_type]['change_password']
+		self.external_uid_type = self.user_type_map[user_type]['external_uid_name']
 
 
 class BaseUser(UserType):
-	*"""docstring for BaseUser"""
+	"""docstring for BaseUser"""
 	def __init__(self,
-				 primary_email, 
-				 given_name, 
-				 family_name,
 				 user_type=None,
+				 primary_email=None, 
+				 given_name=None, 
+				 family_name=None,
 				 external_uid=None, 
 				 password=None,
-				 suspended=False,
-				 change_password=False,
-				 org_unit='/Schools'
+				 suspended=None,
+				 change_password=None,
+				 org_unit=None
 				):
-		UserType.__init__(user_type)
-		self.primary_email = primary_email
-		self.full_email_address = self.username + '@' + self.ut.domain
-		self.given_name = given_name # First_Name
-		self.family_name = family_name # Last_Name
-		self.external_userid = external_userid
-		self.password = password
-		self.suspended = suspended
-		self.org_unit = org_unit
+		UserType.__init__(self, user_type)
+		self.payload = {}
+
+		self._set_org_unit(org_unit)
+		if primary_email != None:
+			self._set_primary_email(primary_email)
+
+		if given_name and family_name:
+			self.name = self._set_name(given_name, family_name)
+
+		if password != None:
+			self._set_password(password, self.change_password)
+
+		if external_uid != None:
+			self._set_external_uid(external_uid)
+
+		if suspended != None:
+			self._suspend_user(suspended)
 
 
-	def user_object(self):
-		pass
+	def _set_primary_email(self, primary_email):
+		self.payload["primaryEmail"] = primary_email
+
+	def _set_org_unit(self, org_unit):
+		if org_unit == None:
+			org_unit = self.default_org_unit
+
+		self.payload["orgUnitPath"] = org_unit
+
+	def _set_name(self, given_name, family_name):
+		self.payload["name"] = {"givenName": given_name,
+		 						"familyName": family_name}
+
+	def _set_password(self, password, change_password):
+		self.payload["password"] = password
+		self._change_password(change_password)
+
+	def _change_password(self, change_password):
+		if change_password == None:
+			self.payload["changePasswordAtNextLogin"] = self.change_password
+		else:
+			assert(type(change_password)) == bool
+			self.payload["changePasswordAtNextLogin"] = change_password
+
+	def _set_external_uid(self, user_id):
+		self.payload["externalIds"] = [{"customType": self.external_uid_type,
+								"type": "custom",
+								"value": user_id}]
+
+	def _suspend_user(self, suspended):
+		if suspended != None:
+			assert(type(suspended)) == bool
+			self.payload["suspended"] = suspended
 
 
-
-
-
-
-
-
-class UserFromJSON(object):
+class GoogleJSON(BaseUser):
+	"""This is a huge problem"""
 	def __init__(self, data):
 		assert(type(data)) == dict
 		self.data = data
-		self.username = data.get('primaryEmail')
-		self.name = data.get('name')
-		if self.name:
-			self.given_name = self.name.get('givenName')
-			self.family_name = self.name.get('familyName')
-		else:
-			self.given_name = None
-			self.family_name = None
+		user_type = 'staff'
+		primary_email = data.get('primaryEmail')
+		name = data.get('name') 
+		given_name = name.get('givenName')
+		family_name = name.get('familyName')
+		uids = data.get('externalIds')
+		if uids:
+			external_uid = self.return_uid(uids)
+		suspended = data.get('suspended')
+		change_password = data.get('changePasswordAtNextLogin')
+		org_unit = data.get('orgUnitPath')
 
-		self.external_uid = data.get('externalIds')
-		if self.external_uid:
-			for uid in self.external_uid:
-				print uid.get('customType'), uid.get('value')  # TODO (bixbydev): Eventually this will do soemthing
+		BaseUser.__init__(self, 
+							user_type=user_type, 
+							primary_email=primary_email,
+							given_name=given_name,
+							family_name=family_name,
+							external_uid=external_uid,
+							password=None,
+							suspended=suspended,
+							change_password=change_password,
+							org_unit=org_unit)
 
-		self.password = data.get('password')
-		
-		self.change_password = (data.get('changePasswordAtNextLogin') == True)
-		self.suspended = (data.get('suspended') == True)
-		self.emails = data.get('emails')
-		for email in self.emails:
-			print email
-		self.email_aliases = self.data.get('aliases')
-		self.google_id = self.data.get('id')
-
-
-
-
-
-
-
+	def return_uid(self, external_uids):
+		for uid in external_uids:
+				if uid.get('customType') in ('staff', 'student', 'employee'):
+					return uid.get('value')
 
 
 class ExternalIds(UserType):
@@ -186,34 +218,5 @@ class NewUser(UserType):
 		udict['externalIds'] = {} # TODO (bixbydev): uid Structure
 		udict['orgUnitPath'] = self.org_unit
 		self.udict = udict
-
-
-class OldUserFromJSON(object):
-	def __init__(self, json_dict):
-		assert(type(json_dict)) == dict
-		self.json_dict = json_dict
-		self.username = json_dict.get('primaryEmail')
-		self.name = json_dict.get('name')
-		if self.name:
-			self.given_name = self.name.get('givenName')
-			self.family_name = self.name.get('familyName')
-		else:
-			self.given_name = None
-			self.family_name = None
-
-		self.external_userid = json_dict.get('externalIds')
-		if self.external_userid:
-			for uid in self.external_userid:
-				print uid # TODO (bixbydev): Eventually this will do soemthing
-
-		self.password = json_dict.get('password')
-		# Neat little hack. If the value isn't true it returns false
-		self.change_password = (json_dict.get('changePasswordAtNextLogin') == True)
-		self.suspended = (json_dict.get('suspended') == True)
-		self.emails = json_dict.get('emails')
-		for email in self.emails:
-			print email
-		self.email_aliases = self.json_dict.get('aliases')
-		self.google_id = self.json_dict.get('id')
 
 
