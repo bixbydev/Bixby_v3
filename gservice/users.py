@@ -10,7 +10,10 @@
 
 import json
 from datetime import datetime
+from googleapiclient.model import makepatch
 from config import config
+from database.mysql.base import CursorWrapper
+from database import queries
 
 
 STAFF_DOMAIN = config.STAFF_DOMAIN
@@ -137,18 +140,21 @@ class BaseUser(UserType):
 
 
 class GoogleJSON(BaseUser):
-	"""This is a huge problem"""
+	"""This might be a problem"""
+	domain_to_usertype = config.DOMAIN_TO_USERTYPE_MAP
 	def __init__(self, data):
 		assert(type(data)) == dict
 		self.data = data
-		user_type = 'staff'
 		primary_email = data.get('primaryEmail')
+		user_type = self._user_type_from_email(primary_email)
 		name = data.get('name') 
 		given_name = name.get('givenName')
 		family_name = name.get('familyName')
 		uids = data.get('externalIds')
 		if uids:
 			external_uid = self.return_uid(uids)
+		else:
+			external_uid = None
 		suspended = data.get('suspended')
 		change_password = data.get('changePasswordAtNextLogin')
 		org_unit = data.get('orgUnitPath')
@@ -169,54 +175,58 @@ class GoogleJSON(BaseUser):
 				if uid.get('customType') in ('staff', 'student', 'employee'):
 					return uid.get('value')
 
+	def _user_type_from_email(self, primary_email):
+		domain = primary_email.split('@')[1]
+		return self.domain_to_usertype[domain]
 
-class ExternalIds(UserType):
-	def __init__(self, user_type):
-		UserType.__init__(self, user_type)
+
+class BixbyUser(BaseUser, CursorWrapper):
+	def __init__(self):
+		CursorWrapper.__init__(self)
+
+	def _check_user_exists(self, primary_email):
+		self.cursor.execute(queries.sql_get_bixby_user, (primary_email,))
+		bixby_user = self.cursor.fetchone()
+		if bixby_user:
+			self.user_in_db = True
+			self.bixby_id = bixby_user[0]
+			print bixby_user
+			self._db_user_object(user_type = bixby_user[1],
+								primary_email = bixby_user[2],
+								given_name = bixby_user[3],
+								family_name = bixby_user[4],
+								external_uid = bixby_user[5],
+								suspended = bool(bixby_user[6]),
+								change_password = bool(bixby_user[7]),
+								org_unit = bixby_user[9]
+								)
+		else:
+			self.user_in_db = False
+
+	def _db_user_object(self, 
+					user_type,
+					primary_email,
+					given_name,
+					family_name,
+					external_uid,
+					suspended,
+					change_password,
+					org_unit):
+		BaseUser.__init__(self, 
+							user_type=user_type, 
+							primary_email=primary_email,
+							given_name=given_name,
+							family_name=family_name,
+							external_uid=external_uid,
+							password=None,
+							suspended=suspended,
+							change_password=change_password,
+							org_unit=org_unit)
+		
 
 
-class NewUser(UserType):
-	"""docstring for NewUsers"""
-	def __init__(self,
-				 username, 
-				 given_name, 
-				 family_name, 
-				 emails=[],
-				 user_type=None,
-				 external_userid=None, 
-				 password=None,
-				 suspended=False,
-				 change_password=False,
-				 org_unit='/Disabled Users'
-				):
-		# Proof of concept
-		self.ut = UserType(user_type)
-		self.user_type = self.ut.user_type
-		# self.user_type = user_type
-		self.username = username
-		self.full_email_address = self.username + '@' + self.ut.domain
-		self.given_name = given_name # First_Name
-		self.family_name = family_name # Last_Name
-		self.emails = emails.sort() # It really needs to be json or a dictionary
-		self.external_userid = external_userid
-		self.password = password
-		self.suspended = suspended
-		self.org_unit = org_unit
 
-	def user_json(self):
-		udict = {}
-		udict['primaryEmail'] = self.full_email_address
-		udict['name'] = {'givenName': self.given_name,
-							'familyName': self.family_name}
-		udict['suspended'] = self.suspended
-		if self.password:
-			udict['password'] = self.password
-		udict['emails'] = {'address': self.full_email_address,
-								'type': "work",
-								'customType': "",
-								'primary': True}
-		udict['externalIds'] = {} # TODO (bixbydev): uid Structure
-		udict['orgUnitPath'] = self.org_unit
-		self.udict = udict
+
+
 
 
