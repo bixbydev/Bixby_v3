@@ -36,10 +36,28 @@ PASSWORD_SALT = None
 # GSCOPE = 'GoogleApps'
 GSCOPE = 'GtestGoogleApps'
 PRIMARY_DOMAIN = config.get(GSCOPE, 'PRIMARY_DOMAIN')
-STAFF_DOMAIN = PRIMARY_DOMAIN
-STUDENT_DOMAIN = config.get(GSCOPE, 'STUDENT_DOMAIN')
+STAFF_DOMAIN = unicode(PRIMARY_DOMAIN)
+STUDENT_DOMAIN = unicode(config.get(GSCOPE, 'STUDENT_DOMAIN'))
 CLIENT_ID = config.get(GSCOPE, 'CLIENT_ID')
 CLIENT_SECRET = config.get(GSCOPE, 'CLIENT_SECRET')
+AUTH_FILE = config.get(GSCOPE, 'AUTH_FILE')
+
+USER_TYPE_MAP = {u'staff': 
+						{u'userTypeId': 1,
+							u'domain': STAFF_DOMAIN,
+							u'defaultOU': u'Staff',
+							u'change_password': True,
+							u'external_uid_name': 'staff'},
+						u'student': {u'userTypeId': 2,
+							u'domain': STUDENT_DOMAIN,
+							u'defaultOU': u'Schools',
+							u'change_password': False,
+							u'external_uid_name': 'student'}
+						}
+
+DOMAIN_TO_USERTYPE_MAP = {STAFF_DOMAIN: 'staff', STUDENT_DOMAIN: 'student'}
+
+OU_CSV_FILE_PATH = config.get('Bixby', 'orgunitcsvfile')
 
 
 # MySQL Configuration Section

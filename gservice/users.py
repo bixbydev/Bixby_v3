@@ -23,7 +23,7 @@ GTIME_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
 GEXPIRY_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
 
-user_map = {'bixbyId': 'ID',
+bixby_user_map = {'bixbyId': 'ID',
 			 'suspended': 'SUSPENDED',
 			 'primaryEmail': 'PRIMARY_EMAIL',
 			 'creationTime': 'CREATION_DATE',
@@ -41,10 +41,10 @@ user_map = {'bixbyId': 'ID',
 def return_datetime(iso8601s):
 	"""Returns datetime object from iso8601 string in Google JSON response"""
 	try:
-		return datetime.strptime(iso861s, GTIME_FORMAT)
+		return datetime.strptime(iso8601s, GTIME_FORMAT)
 	except ValueError:
 		"""Handles the Google Oauth Expiry Format"""
-		return datetime.strptime(iso861s, GEXPIRY_FORMAT)
+		return datetime.strptime(iso8601s, GEXPIRY_FORMAT)
 
 
 class UserType(object):
@@ -129,9 +129,10 @@ class BaseUser(UserType):
 			self.payload["changePasswordAtNextLogin"] = change_password
 
 	def _set_external_uid(self, user_id):
+		self.user_id = user_id
 		self.payload["externalIds"] = [{"customType": self.external_uid_type,
 								"type": "custom",
-								"value": user_id}]
+								"value": self.user_id}]
 
 	def _suspend_user(self, suspended):
 		if suspended != None:
@@ -223,8 +224,72 @@ class BixbyUser(BaseUser, CursorWrapper):
 							change_password=change_password,
 							org_unit=org_unit)
 		
+	def _insert_new_user(self, google_data):
+		insert = {}
+		# for k in google_data.payload.iterkeys():
+		# 	db_key = bixby_user_map.get(k)
+		# 	d[db_key] = google_data.payload[k]
+
+		# for k in google_data.data.iterkeys():
+		# 	db_key = bixby_user_map.get(k)
+		# 	if db_key:
+		# 		insert[db_key] = google_data.data[k]
+
+		insert['USER_TYPE'] = google_data.user_type
+		insert['FIRST_NAME'] = google_data.data.get('name').get('givenName')
+		insert['LAST_NAME'] = google_data.data.get('name').get('familyName')
+		insert['PRIMARY_EMAIL'] = google_data.data.get('primaryEmail')
+		insert['GOOGLE_ID'] = google_data.data.get('id')
+		insert['LASTLOGIN_DATE'] = return_datetime(google_data.data.get('lastLoginTime'))
+		insert['GLOBAL_ADDRESSBOOK'] = int(google_data.data.get('includeInGlobalAddressList'))
+		insert['CREATION_DATE'] = return_datetime(google_data.data.get('creationTime'))
+		insert['ETAG'] = google_data.data.get('etag')
+		insert['SUSPENDED'] = int(google_data.data.get('suspended'))
+		insert['CHANGE_PASSWORD'] = int(google_data.data.get('changePasswordAtNextLogin'))
+		insert['OU_PATH'] = google_data.data.get('orgUnitPath')
+
+		if google_data.payload.get('externalIds') == None:
+			uid = self.__get_uid_from_lookuptable(google_data.data.get('primaryEmail'))
+			if uid:
+				google_data._set_external_uid(uid) # this will go in payload
+				# google_data.payload['externalIds']
+				insert['EXTERNAL_UID'] = uid
+		
+		self.__insert_dict('bixby_user', insert)
+
+	def __get_uid_from_lookuptable(self, primary_email):
+		self.cursor.execute(queries.lookup_external_uid, (primary_email,))
+		uid = self.cursor.fetchone()
+		if uid:
+			return uid[0]
+		else:
+			return uid
 
 
+	def load_bixby_db_from_google_json(self, json_object):
+		google_object = GoogleJSON(json_object)
+		self._check_user_exists(google_object.payload['primaryEmail'])
+		if self.user_in_db == False:
+			print "I would insert this object", google_object.payload['primaryEmail']
+			
+			return self._insert_new_user(google_object)
+
+		else:
+			print makepatch(google_object.payload, self.payload)
+			
+	def __insert_dict(self, table, dictionary):
+		places = ', '.join(['%s'] * len(dictionary))
+		columns = ', '.join(dictionary.keys())
+		sql = """INSERT INTO %s (%s) VALUES (%s)""" %(table, columns, places)
+		self.cursor.execute(sql, dictionary.values())
+		#print sql %dictionary.values()
+
+
+
+def foo(users_objects):
+	bu = BixbyUser()
+	for user in users_objects:
+		bu.load_bixby_db_from_google_json(user)
 
 
 

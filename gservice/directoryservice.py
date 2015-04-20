@@ -29,6 +29,7 @@ from config import config
 
 CLIENT_ID = config.CLIENT_ID
 CLIENT_SECRET = config.CLIENT_SECRET
+AUTH_FILE = config.AUTH_FILE
 
 # Check https://developers.google.com/admin-sdk/directory/v1/guides/authorizing for all available scopes
 OAUTH_SCOPE = """https://www.googleapis.com/auth/admin.directory.user\
@@ -52,7 +53,7 @@ flow = OAuth2WebServerFlow(client_id=CLIENT_ID,
 							user_agent=USER_AGENT,
 							redirect_uri=REDIRECT_URI)
 
-auth_store = Storage('private/auth.dat')
+auth_store = Storage(AUTH_FILE)
 credentials = auth_store.get()
 
 if credentials is None or credentials.invalid == True:
@@ -86,4 +87,28 @@ class DirectoryService(object):
 		return self.directory_service.users()
 
 
+
+def paginate(service_object, **kwargs):
+	"""This is going to be darn useful. I wonder if this is where a decorator 
+		would be handy?
+
+	params = {'customer': 'my_customer',
+            'domain': config.PRIMARY_DOMAIN,
+             'viewType': 'admin_view'}"""
+             
+	request = service_object.list(**kwargs)
+	all_pages = []
+	pages = 0
+
+	while (request != None ):
+		pages = pages + 1
+		print pages
+
+		current_page = request.execute()
+
+		all_pages.extend(current_page['users'])
+
+		request = service_object.list_next(request, current_page)
+
+	return all_pages
 

@@ -17,9 +17,11 @@ from googleapiclient.model import makepatch
 from logger.log import log
 from config import config
 from gservice.directoryservice import DirectoryService
+import gservice.users
 from database import queries
 import database.mysql.base
 import database.oracle.base
+import sys
 
 log.info('Starting Bixby')
 
@@ -48,9 +50,12 @@ def refresh_students_py(oracursor, mycursor):
 	log.info('Refreshing STUDENTS_PY table data')
 	ps_students = oracursor.execute(queries.get_students_from_sis)
 	ps_students = oracursor.fetchall()
+	print sys.getsizeof(ps_students)
 	log.info('Truncating STUDENTS_PY Table')
-	mycursor.cursor.execute('TRUNCATE TABLE STUDENTS_PY')
-	mycursor.cursor.executemany(queries.insert_students_py, ps_students)
+	mycursor.execute('TRUNCATE TABLE STUDENTS_PY')
+	log.info('Table Truncated')
+	mycursor.executemany(queries.insert_students_py, ps_students)
+	log.info('%s Records Inserted' %oracursor.rowcount)
 
 
 def multidb_bulk_insert(sourcecursor, destinationcursor, sourcequery, destinationtable):
@@ -75,13 +80,13 @@ def multidb_bulk_insert(sourcecursor, destinationcursor, sourcequery, destinatio
 
 
 
-def paginate(service_object):
+def paginate(service_object, **kwargs):
 	"""This is going to be darn useful. I wonder if this is where a decorator 
 		would be handy?"""
 	params = {'customer': 'my_customer',
             'domain': config.PRIMARY_DOMAIN,
              'viewType': 'admin_view'}
-	request = service_object.list(**params)
+	request = service_object.list(**kwargs)
 	all_pages = []
 	pages = 0
 
@@ -115,8 +120,10 @@ def main():
 	oc = ocon.cursor
 
 	refresh_staff_py(oc, mc)
+	refresh_students_py(oc, mc)
 
 
 if __name__ == '__main__':
 	main()
-	# main()
+
+

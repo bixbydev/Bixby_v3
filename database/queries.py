@@ -33,6 +33,7 @@ WHERE t.staffstatus IS NOT NULL
 	AND t.last_name IS NOT NULL  -- Remove for Production Version Fix
 	"""
 
+
 get_students_from_sis = """SELECT id STUDENTID
 						, SCHOOLID
 						, STUDENT_NUMBER
@@ -59,6 +60,7 @@ get_students_from_sis = """SELECT id STUDENTID
 						ORDER BY id
 						"""
 
+
 # MySQL Queries
 insert_staff_py = """INSERT INTO STAFF_PY (PS_DCID
 						, STAFFID
@@ -78,7 +80,6 @@ insert_staff_py = """INSERT INTO STAFF_PY (PS_DCID
 						VALUES(%s, %s, %s, %s, %s, %s
 							, %s, %s, %s, %s, %s
 							, %s, %s, %s, %s)"""
-
 
 
 
@@ -106,4 +107,21 @@ insert_students_py = """INSERT INTO STUDENTS_PY (STUDENTID
 											, %s, %s, %s, %s, %s
 											, %s, %s, %s)"""
 
+sql_get_bixby_user = """SELECT ID
+						, USER_TYPE
+						, PRIMARY_EMAIL
+						, FIRST_NAME
+						, LAST_NAME
+						, EXTERNAL_UID
+						, SUSPENDED
+						, CHANGE_PASSWORD
+						, GLOBAL_ADDRESSBOOK
+						, OU_PATH
+						
+						FROM bixby_user
+						WHERE PRIMARY_EMAIL = %s"""
+
+lookup_external_uid = """SELECT NEW_EXTERNAL_UID
+						FROM lookup_table
+						WHERE PRIMARY_EMAIL = %s"""
 
