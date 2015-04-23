@@ -16,6 +16,7 @@
 
 import httplib2
 
+from logger.log import log
 from apiclient import errors
 from apiclient.discovery import build
 # from apiclient.discovery import build
@@ -78,7 +79,7 @@ class DirectoryService(object):
 		self.directory_service = build(serviceName='admin', 
 									version='directory_v1',
 									http=http)
-		print 'Connected to Domain: %s' %(config.PRIMARY_DOMAIN)
+		log.info('Connected to Domain: %s' %(config.PRIMARY_DOMAIN))
 
 	def orgunits(self):
 		return self.directory_service.orgunits()
