@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Filename: passwords.py
+# Filename: util.py
 
 #=====================================================================#
 # Copyright (c) 2015 Bradley Hilton <bradleyhilton@bradleyhilton.com> #
@@ -37,3 +37,8 @@ def weak_decode(key, enc):
 		dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
 		dec.append(dec_c)
 	return "".join(dec)
+
+
+def read_file_retrun_string(path_to_file):
+	with open(path_to_file, 'rb') as f:
+		return f.read()
