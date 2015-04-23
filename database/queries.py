@@ -8,13 +8,13 @@
 #=====================================================================#
 
 
-get_staff_from_sis = """SELECT t.USERS_DCID PS_DCID
+get_staff_from_sis = """SELECT t.USERS_DCID EXTERNAL_UID
 , t.id
 , t.schoolid
 , t.teachernumber
 , CASE WHEN ps_customfields.getcf('teachers',t.id,'CA_SEID') IS NOT NULL THEN 1 ELSE 0 END CERTIFICATED
-, t.first_name
-, t.last_name
+, t.first_name given_name
+, t.last_name family_name
 , t.middle_name
 , ps_customfields.getcf('teachers',t.id,'gender') gender
 , CASE WHEN t.status = 1 THEN 0 ELSE 2 END EXTERNAL_USERSTATUS
@@ -34,11 +34,11 @@ WHERE t.staffstatus IS NOT NULL
 	"""
 
 
-get_students_from_sis = """SELECT id STUDENTID
+get_students_from_sis = """SELECT id EXTERNAL_UID
 						, SCHOOLID
 						, STUDENT_NUMBER
-						, FIRST_NAME
-						, LAST_NAME
+						, FIRST_NAME GIVEN_NAME
+						, LAST_NAME FAMILY_NAME
 						, MIDDLE_NAME
 						, DOB
 						, CASE WHEN UPPER(gender) NOT IN ('M','F') THEN 'U' ELSE UPPER(gender) END GENDER
@@ -62,13 +62,13 @@ get_students_from_sis = """SELECT id STUDENTID
 
 
 # MySQL Queries
-insert_staff_py = """INSERT INTO STAFF_PY (PS_DCID
+insert_staff_py = """INSERT INTO STAFF_PY (EXTERNAL_UID
 						, STAFFID
 						, SCHOOLID
 						, TEACHERNUMBER
 						, CERTIFICATED
-						, FIRST_NAME
-						, LAST_NAME
+						, GIVEN_NAME
+						, FAMILY_NAME
 						, MIDDLE_NAME
 						, GENDER
 						, EXTERNAL_USERSTATUS
@@ -83,11 +83,11 @@ insert_staff_py = """INSERT INTO STAFF_PY (PS_DCID
 
 
 
-insert_students_py = """INSERT INTO STUDENTS_PY (STUDENTID
+insert_students_py = """INSERT INTO STUDENTS_PY (EXTERNAL_UID
 											, SCHOOLID
 											, STUDENT_NUMBER
 											, FIRST_NAME
-											, LAST_NAME
+											, FAMILY_NAME
 											, MIDDLE_NAME
 											, DOB
 											, GENDER
@@ -110,8 +110,8 @@ insert_students_py = """INSERT INTO STUDENTS_PY (STUDENTID
 sql_get_bixby_user = """SELECT ID
 						, USER_TYPE
 						, PRIMARY_EMAIL
-						, FIRST_NAME
-						, LAST_NAME
+						, GIVEN_NAME
+						, FAMILY_NAME
 						, EXTERNAL_UID
 						, SUSPENDED
 						, CHANGE_PASSWORD
@@ -121,7 +121,26 @@ sql_get_bixby_user = """SELECT ID
 						FROM bixby_user
 						WHERE PRIMARY_EMAIL = %s"""
 
+get_bixby_id = """SELECT id 
+					FROM bixby_user
+					WHERE external_uid = %s
+						AND user_type = %s"""
+
 lookup_external_uid = """SELECT NEW_EXTERNAL_UID
 						FROM lookup_table
 						WHERE PRIMARY_EMAIL = %s"""
+
+get_userinfo_vary_params = """SELECT ID
+						, USER_TYPE
+						, PRIMARY_EMAIL
+						, GIVEN_NAME
+						, FAMILY_NAME
+						, EXTERNAL_UID
+						, SUSPENDED
+						, CHANGE_PASSWORD
+						, GLOBAL_ADDRESSBOOK
+						, OU_PATH
+						
+						FROM bixby_user
+						%s """
 
