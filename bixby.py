@@ -17,7 +17,7 @@ from googleapiclient.model import makepatch
 from logger.log import log
 from config import config
 from gservice.directoryservice import DirectoryService
-import gservice.users
+from gservice import users
 from database import queries
 import database.mysql.base
 import database.oracle.base
