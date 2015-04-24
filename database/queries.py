@@ -121,6 +121,33 @@ sql_get_bixby_user = """SELECT ID
 						FROM bixby_user
 						WHERE PRIMARY_EMAIL = %s"""
 
+sql_get_staff_py = """SELECT bu.ID
+							, 'staff' AS USER_TYPE
+							, COALESCE(CONCAT(sp.BUSD_EMAIL_ADDRESS, '@gtest.berkeley.net') , bu.PRIMARY_EMAIL) PRIMARY_EMAIL
+							, SP.GIVEN_NAME
+							, SP.FAMILY_NAME
+							, sp.EXTERNAL_UID
+							, CASE WHEN sp.EXTERNAL_USERSTATUS + sp.SUSPEND_ACCOUNT >= 1 THEN 1 ELSE 0 END AS SUSPENDED
+							, 0 AS CHANGE_PASSWORD
+							, 1 GLOBAL_ADDRESSBOOK
+							, '/Staff' AS OU_PATH
+
+							FROM staff_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'staff'
+							        
+							WHERE sp.BUSD_EMAIL = 0 -- 0 = Managed by bixby, for now 
+								AND PRIMARY_EMAIL IS NOT NULL
+								AND sp.EXTERNAL_UID = %s
+								AND bu.USER_TYPE = %s
+								"""
+
+get_user_key = """SELECT coalesce(GOOGLE_ID, PRIMARY_EMAIL) userkey
+					FROM bixby_user
+					WHERE id = %s"""
+
+
 get_bixby_id = """SELECT id 
 					FROM bixby_user
 					WHERE external_uid = %s

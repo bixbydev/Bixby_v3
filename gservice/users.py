@@ -246,10 +246,6 @@ class UserFromJSON(BaseUser):
 		BaseUser.__init__(self, **kwargs)
 
 
-class UserAsJsonObject(object):
-	pass
-
-
 
 class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 	def __init__(self):
@@ -263,17 +259,25 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 		self.user_type = user_type
 		if self._is_existing_user(external_uid, user_type):
 			self.__get_bixby_id(external_uid, user_type)
-			user_object_from_db = self._get_user_object_by_id(self.bixby_id)
+			self.user_key = self.__get_user_key()
+			user_object_from_bixby = self._get_user_object_by_id(self.bixby_id)
+			user_object_from_py = self._get_user_object_from_py_table(self.external_uid, self.user_type)
 
-			"""Check for updates"""
-			print "user exists"
-			insert_object = sql_dict_from_json_object(user_object_from_db)
-			print 'It happened above'
-			# update_user_from_dictionary(self.cursor, self.bixby_id, insert_object)
+			# Check for updates
+			patch = makepatch(user_object_from_bixby, user_object_from_py)
+			if patch:
+				log.info('Patching user %s with patch %s' 
+										%(self.bixby_id, str(patch)))
+
+				patch_result = self.uservice.patch(userKey=self.user_key,
+													 body=patch).execute()
+				update_object = update_from_json_object(patch_result)
+				update_user_from_dictionary(self.cursor, self.bixby_id, update_object)
 
 		else:
 			"""Create the New User"""
 			print 'User does not exist'
+
 
 	def new_user_from(self, external_uid, user_type):
 		pass
@@ -296,6 +300,10 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 		bixby_user = self.cursor.fetchone()
 		self.bixby_id = bixby_user[0]
 
+	def __get_user_key(self):
+		self.cursor.execute(queries.get_user_key, (self.bixby_id,))
+		return self.cursor.fetchone()[0]
+
 
 	def _get_user_object_by_id(self, bixby_id):
 		"""Looks in the bixby_user table and returns a google object"""
@@ -313,9 +321,33 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 			# 	k = k.lower()
 			# 	d[k] = v
 
-		b = BaseUser(**d)
-		return b.payload
+		self.bu = BaseUser(**d)
+		return self.bu.payload
 
+
+	def _get_user_object_from_py_table(self, external_uid, user_type):
+		"""Looks in the staf_py table and returns a google object"""
+		if user_type == 'staff':
+			q = queries.sql_get_staff_py
+		elif user_type == 'student':
+			q = None
+		else:
+			q = None
+
+		self.cursor.execute(q, (external_uid, user_type))
+		columns = [ i[0] for i in self.cursor.description ]
+		values = self.cursor.fetchone()
+		if self.values:
+			d = {}
+			d['user_type'] = user_type
+			for k, v in zip(columns, values):
+				k = k.lower()
+				d[k] = v
+			self.sp = BaseUser(**d)
+		else:
+			self.sp = {}
+		
+		return self.sp.payload
 
 
 
@@ -349,6 +381,9 @@ def update_from_json_object(json_object):
 			if key == 'externalIds':
 				uid = get_external_uid_from_json(value)
 				if uid is not None: d.update(uid)
+
+			elif key in ('lastLoginTime', 'creationTime'):
+				d[column] = return_datetime(value)
 			else:	
 				d[column] = value
 	return d
@@ -370,7 +405,7 @@ def update_user_from_dictionary(cursor, bixby_id, dictionary):
 		columns = update.format(', '.join('{}=%s'.format(k) for k in dictionary))
 		where = ' WHERE id = %s' %bixby_id
 		sql = columns + where
-		print sql
+		log.debug(sql)
 		cursor.execute(sql, dictionary.values())
 		log.info('Updateing User %s Record %s' %(bixby_id, str(dictionary) ))
 
