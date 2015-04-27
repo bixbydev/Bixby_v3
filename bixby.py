@@ -96,6 +96,7 @@ def paginate(service_object, **kwargs):
 
 		current_page = request.execute()
 
+		# will not work for groups because of this
 		all_pages.extend(current_page['users'])
 
 		request = service_object.list_next(request, current_page)

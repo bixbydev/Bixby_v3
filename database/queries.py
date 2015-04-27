@@ -123,7 +123,10 @@ sql_get_bixby_user = """SELECT ID
 
 sql_get_staff_py = """SELECT bu.ID
 							, 'staff' AS USER_TYPE
-							, COALESCE(CONCAT(sp.BUSD_EMAIL_ADDRESS, '@gtest.berkeley.net') , bu.PRIMARY_EMAIL) PRIMARY_EMAIL
+							, COALESCE(
+								CONCAT(sp.BUSD_EMAIL_ADDRESS
+									, '@gtest.berkeley.net') 
+								, bu.PRIMARY_EMAIL) PRIMARY_EMAIL
 							, SP.GIVEN_NAME
 							, SP.FAMILY_NAME
 							, sp.EXTERNAL_UID
@@ -142,6 +145,63 @@ sql_get_staff_py = """SELECT bu.ID
 								AND sp.EXTERNAL_UID = %s
 								AND bu.USER_TYPE = %s
 								"""
+
+sql_get_students_py = """SELECT bu.ID
+						, 'student' AS USER_TYPE
+						, bu.PRIMARY_EMAIL
+						, sp.GIVEN_NAME
+						, sp.FAMILY_NAME
+						, sp.EXTERNAL_UID
+						, sp.SUSPEND_ACCOUNT AS SUSPENDED
+						, 0 AS CHANGE_PASSWORD
+						, 1 GLOBAL_ADDRESSBOOK
+						, CONCAT('/', ou.OU_PATH) AS OU_PATH
+
+						FROM students_py AS sp
+						LEFT OUTER JOIN bixby_user AS bu
+							ON sp.external_uid = bu.EXTERNAL_UID
+								AND bu.USER_TYPE = 'student'
+						JOIN orgunit AS ou
+							ON sp.SCHOOLID = ou.DEPARTMENT_ID
+								AND sp.GRADE_LEVEL = ou.MAP_KEY
+						WHERE sp.EXTERNAL_UID = %s
+							AND bu.USER_TYPE = %s
+						"""
+
+get_new_student_py = """SELECT 'student' AS USER_TYPE
+						, sp.EMAIL_OVERRIDE
+						, sp.GIVEN_NAME
+						, sp.FAMILY_NAME
+						, sp.MIDDLE_NAME
+						, sp.EXTERNAL_UID
+						, sp.SUSPEND_ACCOUNT AS SUSPENDED
+						, 0 AS CHANGE_PASSWORD
+						, 1 GLOBAL_ADDRESSBOOK
+						, CONCAT('/', ou.OU_PATH) AS OU_PATH
+						FROM students_py AS sp
+						JOIN orgunit AS ou
+							ON sp.SCHOOLID = ou.DEPARTMENT_ID
+								AND sp.GRADE_LEVEL = ou.MAP_KEY
+						WHERE sp.EXTERNAL_UID = %s
+						"""
+
+get_student_number = """SELECT STUDENT_NUMBER 
+						FROM students_py 
+						WHERE EXTERNAL_UID = %s"""
+
+get_new_staff_py = """SELECT 'staff' AS USER_TYPE
+						, sp.BUSD_Email_Address EMAIL_OVERRIDE
+						, sp.GIVEN_NAME
+						, sp.FAMILY_NAME
+						, sp.MIDDLE_NAME
+						, sp.EXTERNAL_UID
+						, sp.SUSPEND_ACCOUNT AS SUSPENDED
+						, 0 AS CHANGE_PASSWORD
+						, 1 GLOBAL_ADDRESSBOOK
+						, '/Staff' AS OU_PATH
+						FROM staff_py AS sp
+						WHERE sp.EXTERNAL_UID = %s"""
+
 
 get_user_key = """SELECT coalesce(GOOGLE_ID, PRIMARY_EMAIL) userkey
 					FROM bixby_user

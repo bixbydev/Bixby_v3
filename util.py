@@ -9,6 +9,9 @@
 
 import base64
 import getpass
+from datetime import datetime
+from config import config
+
 
 def password_salt():
 	global PASSWORD_SALT
@@ -42,3 +45,27 @@ def weak_decode(key, enc):
 def read_file_retrun_string(path_to_file):
 	with open(path_to_file, 'rb') as f:
 		return f.read()
+
+
+def un_map(dic):
+	"""
+	Takes a dictionary and reverses the values to keys and keys to values.
+	This only works for a dictionary with unique values.
+	"""
+	reverse_dic = {}
+	for k, v in dic.iteritems():
+		reverse_dic[v] = k
+
+	return reverse_dic
+
+
+def return_datetime(iso8601s):
+	"""Returns datetime object from iso8601 string in Google JSON response"""
+	try:
+		return datetime.strptime(iso8601s, config.GTIME_FORMAT)
+	except ValueError:
+		"""Handles the Google Oauth Expiry Format"""
+		return datetime.strptime(iso8601s, config.GEXPIRY_FORMAT)
+
+def year_as_string():
+	return datetime.datetime.strftime(datetime.datetime.now(), '%Y')

@@ -16,6 +16,7 @@
 import os
 from ConfigParser import ConfigParser
 import getpass
+from datetime import datetime
 
 from logger.log import log
 
@@ -41,6 +42,12 @@ STUDENT_DOMAIN = unicode(config.get(GSCOPE, 'STUDENT_DOMAIN'))
 CLIENT_ID = config.get(GSCOPE, 'CLIENT_ID')
 CLIENT_SECRET = config.get(GSCOPE, 'CLIENT_SECRET')
 AUTH_FILE = config.get(GSCOPE, 'AUTH_FILE')
+
+GTIME_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
+GEXPIRY_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
+YEAR = datetime.strftime(datetime.now(), '%Y')
+
 
 USER_TYPE_MAP = {u'staff': 
 						{u'userTypeId': 1,
