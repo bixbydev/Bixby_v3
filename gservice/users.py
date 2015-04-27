@@ -9,21 +9,14 @@
 
 
 import json
-from datetime import datetime
+
 from googleapiclient.model import makepatch
 from config import config
 from database.mysql.base import CursorWrapper
 from database import queries
 from logger.log import log
 from gservice.directoryservice import DirectoryService
-
-
-
-STAFF_DOMAIN = config.STAFF_DOMAIN
-STUDENT_DOMAIN = config.STUDENT_DOMAIN
-
-GTIME_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
-GEXPIRY_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+from util import un_map, return_datetime
 
 
 bixby_user_map = {'bixbyId': 'ID',
@@ -55,48 +48,21 @@ json_to_columns_map = {'suspended': 'SUSPENDED',
 			 'customType': 'USER_TYPE',
 			 'value': 'EXTERNAL_UID'}
 
-columns_to_json_map = un_map(json_to_columns_map)
 
+columns_to_json_map = un_map(json_to_columns_map)
 
 reverse_user_map = un_map(bixby_user_map)
 
-
-def un_map(dic):
-	"""
-	Takes a dictionary and reverses the values to keys and keys to values.
-	This only works for a dictionary with unique values.
-	"""
-	reverse_dic = {}
-	for k, v in dic.iteritems():
-		reverse_dic[v] = k
-
-	return reverse_dic
+class Error(Exception):
+	"""Base module for Exception in this module"""
 
 
-def return_datetime(iso8601s):
-	"""Returns datetime object from iso8601 string in Google JSON response"""
-	try:
-		return datetime.strptime(iso8601s, GTIME_FORMAT)
-	except ValueError:
-		"""Handles the Google Oauth Expiry Format"""
-		return datetime.strptime(iso8601s, GEXPIRY_FORMAT)
+class BadUserName(Error):
+	"""The Username is Already in Use"""
 
 
 class UserType(object):
-	USER_TYPE_DEFAULTS = {u'staff': 
-						{u'userTypeId': 1,
-							u'domain': STAFF_DOMAIN,
-							u'defaultOU': u'Staff',
-							u'change_password': True,
-							u'external_uid_name': 'staff'},
-						u'student': {u'userTypeId': 2,
-							u'domain': STUDENT_DOMAIN,
-							u'defaultOU': u'Schools',
-							u'change_password': False,
-							u'external_uid_name': 'student'}
-						}
-	user_type_map = USER_TYPE_DEFAULTS
-	# user_type_map = config.USER_TYPE_MAP
+	user_type_map = config.USER_TYPE_MAP
 	def __init__(self, user_type=None):
 		self.user_type = user_type
 		self.domain = self.user_type_map[user_type]['domain']
@@ -163,7 +129,7 @@ class BaseUser(UserType):
 
 	def _set_name(self, given_name, family_name):
 		self.payload["name"] = {"givenName": given_name,
-		 						"familyName": family_name}
+								"familyName": family_name}
 
 	def _set_password(self, password, change_password):
 		self.payload["password"] = password
@@ -194,10 +160,6 @@ class BaseUser(UserType):
 	def _set_creation_time(self, creation_time):
 		self.creation_time = creation_time
 		self.payload['creationTime'] = creation_time
-
-
-
-
 
 
 class GoogleJSON(BaseUser):
@@ -241,12 +203,6 @@ class GoogleJSON(BaseUser):
 		return self.domain_to_usertype[domain]
 
 
-class UserFromJSON(BaseUser):
-	def __init__(self, kwargs):
-		BaseUser.__init__(self, **kwargs)
-
-
-
 class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 	def __init__(self):
 		CursorWrapper.__init__(self)
@@ -257,13 +213,13 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 		"""Initialize User"""
 		self.external_uid = external_uid
 		self.user_type = user_type
-		if self._is_existing_user(external_uid, user_type):
+		self.existng_user = self._is_existing_user(external_uid, user_type)
+		if self.existng_user:
 			self.__get_bixby_id(external_uid, user_type)
 			self.user_key = self.__get_user_key()
 			user_object_from_bixby = self._get_user_object_by_id(self.bixby_id)
 			user_object_from_py = self._get_user_object_from_py_table(self.external_uid, self.user_type)
 
-			# Check for updates
 			patch = makepatch(user_object_from_bixby, user_object_from_py)
 			if patch:
 				log.info('Patching user %s with patch %s' 
@@ -274,13 +230,32 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 				update_object = update_from_json_object(patch_result)
 				update_user_from_dictionary(self.cursor, self.bixby_id, update_object)
 
+			else:
+				log.debug("""No Change Skippng User: %s, %s""" 
+										%(self.external_uid, self.user_type))
+
 		else:
-			"""Create the New User"""
-			print 'User does not exist'
+			#  # What was this for?
+			new_user_object = self._get_new_user_object(external_uid, user_type)
+			if new_user_object['suspended'] == False:
+				self.new_user(external_uid, user_type)
+				log.info("Creating User %s" %self.new_username)
+				new_user_object['primaryEmail'] = self.new_username
+				insert_result = self.uservice.insert(body=new_user_object).execute()
+				insert = update_from_json_object(insert_result)
+				log.info("""Created User:  %s""" %json.dumps(insert_result))
+				insert_user_from_dictionary(self.cursor, 'bixby_user', insert)
 
+			else:
+				log.debug('Skipping suspended user')
 
-	def new_user_from(self, external_uid, user_type):
-		pass
+	def new_user(self, external_uid, user_type):
+		try:
+				self.new_username = unique_username(self.cursor, external_uid, user_type)
+
+		except BadUserName, e:
+			log.warn('Could Not Create Account for %s, %s, %s' 
+							(external_uid, user_type, e) )
 
 
 	def _is_existing_user(self, external_uid, user_type):
@@ -304,7 +279,6 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 		self.cursor.execute(queries.get_user_key, (self.bixby_id,))
 		return self.cursor.fetchone()[0]
 
-
 	def _get_user_object_by_id(self, bixby_id):
 		"""Looks in the bixby_user table and returns a google object"""
 		params = """WHERE id = %s"""
@@ -317,27 +291,55 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 		for k, v in zip(self.columns, self.values):
 			k = k.lower()
 			d[k] = v
-			# if k in columns_to_json_map.iterkeys():
-			# 	k = k.lower()
-			# 	d[k] = v
 
 		self.bu = BaseUser(**d)
 		return self.bu.payload
 
+	def _get_new_user_object(self, external_uid, user_type):
+		# This is redundant but I need to make this work so this is redundant
+		if user_type == 'staff':
+			q = queries.get_new_staff_py
+			password = 'BerkeleyStaff'+config.YEAR
+
+		elif user_type == 'student':
+			q =  queries.get_new_student_py
+			self.cursor.execute(queries.get_student_number, (external_uid,))
+			password = self.cursor.fetchone()[0]
+			password = 'Berkeley'+str(password)
+
+		else:
+			q = None
+
+		self.cursor.execute(q, (external_uid,))
+		columns = [ i[0] for i in self.cursor.description ]
+		values = self.cursor.fetchone()
+		if values:
+			d = {}
+			d['user_type'] = user_type
+			for k, v in zip(columns, values):
+				k = k.lower()
+				d[k] = v
+			self.sp = BaseUser(**d)
+			# Add the new password
+			self.sp.payload['password'] = password
+		return self.sp.payload
 
 	def _get_user_object_from_py_table(self, external_uid, user_type):
 		"""Looks in the staf_py table and returns a google object"""
+		# This is redundant but I need to make this work so this is redundant
 		if user_type == 'staff':
 			q = queries.sql_get_staff_py
+
 		elif user_type == 'student':
-			q = None
+			q = queries.sql_get_student_py
+
 		else:
 			q = None
 
 		self.cursor.execute(q, (external_uid, user_type))
 		columns = [ i[0] for i in self.cursor.description ]
 		values = self.cursor.fetchone()
-		if self.values:
+		if values:
 			d = {}
 			d['user_type'] = user_type
 			for k, v in zip(columns, values):
@@ -374,7 +376,7 @@ def update_from_json_object(json_object):
 		column = json_to_columns_map.get(key, None)
 		if type(value) == dict:
 			#look recursivly down the dict
-			d.update(update_from_json_object(value))	
+			d.update(update_from_json_object(value))  
 		elif column is None:
 			pass
 		else:
@@ -384,7 +386,7 @@ def update_from_json_object(json_object):
 
 			elif key in ('lastLoginTime', 'creationTime'):
 				d[column] = return_datetime(value)
-			else:	
+			else: 
 				d[column] = value
 	return d
 
@@ -393,11 +395,9 @@ def insert_user_from_dictionary(cursor, table, dictionary):
 		places = ', '.join(['%s'] * len(dictionary))
 		columns = ', '.join(dictionary.keys())
 		sql = """INSERT INTO %s (%s) VALUES (%s)""" %(table, columns, places)
-		#cursor.execute(sql, dictionary.values())
-		cursor.execute("""SELECT '1' FROM dual""")
-		print cursor.fetchone()
-		#print sql %dictionary.values()
-		log.info('Inserting Record %s' %str(dictionary))
+		log.debug(sql)
+		cursor.execute(sql, dictionary.values())
+		log.info('Inserting Record %s' %json.dumps(dictionary))
 
 
 def update_user_from_dictionary(cursor, bixby_id, dictionary):
@@ -408,12 +408,6 @@ def update_user_from_dictionary(cursor, bixby_id, dictionary):
 		log.debug(sql)
 		cursor.execute(sql, dictionary.values())
 		log.info('Updateing User %s Record %s' %(bixby_id, str(dictionary) ))
-
-
-
-
-
-
 
 
 
@@ -468,13 +462,13 @@ class BixbyUser(BaseUser, CursorWrapper):
 	def _insert_new_user(self, google_data):
 		insert = {}
 		# for k in google_data.payload.iterkeys():
-		# 	db_key = bixby_user_map.get(k)
-		# 	d[db_key] = google_data.payload[k]
+		#   db_key = bixby_user_map.get(k)
+		#   d[db_key] = google_data.payload[k]
 
 		# for k in google_data.data.iterkeys():
-		# 	db_key = bixby_user_map.get(k)
-		# 	if db_key:
-		# 		insert[db_key] = google_data.data[k]
+		#   db_key = bixby_user_map.get(k)
+		#   if db_key:
+		#     insert[db_key] = google_data.data[k]
 
 		insert['USER_TYPE'] = google_data.user_type
 		insert['GIVEN_NAME'] = google_data.data.get('name').get('givenName')
@@ -547,49 +541,79 @@ class BixbyUser(BaseUser, CursorWrapper):
 
 
 def sanatize_username(username_string):
-	"""Remove special charactors from usernames and truncate"""
-	return username_string.translate(None, '\' -;@#$%!.,/').lower() #[:18]
+	"""Remove special charactors from usernames"""
+	return username_string.translate(None, "\' -;@#$%!.,/").lower()
+
+
+def primary_email_exists(cursor, primary_email, domain):
+	primary_email = primary_email.split('@')[0]
+	primary_email = primary_email+'@'+domain
+	one_user = """SELECT PRIMARY_EMAIL 
+				FROM bixby_user 
+				WHERE PRIMARY_EMAIL = %s"""
+	cursor.execute(one_user, (primary_email,))
+	if cursor.fetchone():
+		return True
+	else:
+		return False
+
+
 
 
 # Generate an unique username within the domain!
-def unique_username(mycursor, uid):
+def unique_username(cursor, external_uid, user_type):
 	# Check for Username Changes/Manual Username
 	new_uname = None
 	try_uname = None
-	mycursor.execute(queries.get_user_info_from_uid, (uid,))
-	first_name, last_name, middle_name, google_username, email_override_address, domain_id = mycursor.fetchone()
-	if google_username == None and email_override_address != None:
-		new_uname = email_override_address
-	elif google_username == None:
-		new_uname = sanatize_username(first_name+last_name)
-	elif google_username != email_override_address:
-		new_uname = email_override_address
+	ut = UserType(user_type)
+	domain = ut.domain 
+	if ut.user_type == 'student':
+		lookup_sql = queries.get_new_student_py
 
-	#Determine true/false username exists	
-	userexists = user_exists(mycursor, uid, domain_id, new_uname)
+	elif ut.user_type == 'staff':
+		lookup_sql = queries.get_new_staff_py
+
+	cursor.execute(lookup_sql, (external_uid,))
+	info = cursor.fetchone()
+	email_override_address = info[1]
+	given_name = info[2]
+	family_name = info[3]
+	middle_name = info[4]
+
+	if email_override_address != None:
+		email_override_address = email_override_address.split('@')[0]
+		new_uname = sanatize_username(email_override_address)
+		bad_overide = True
+	else:
+		new_uname = sanatize_username(given_name+family_name)
+
+	#Determine true/false username exists
+	user_exists = primary_email_exists(cursor, new_uname, domain)
+
+	if user_exists and bad_overide == True:
+		raise BadUserName('The override username exists')
 	
 	# Try creating a username with the middle initial
-	if userexists and middle_name != None:
+	elif user_exists and middle_name != None:
 		log.info("Duplicate Username Avoided %s" %new_uname)
-		new_uname = sanatize_username(first_name+middle_name[0]+last_name)
-		userexists = user_exists(mycursor, uid, domain_id, new_uname)
+		new_uname = sanatize_username(given_name+middle_name[0]+family_name)
+		user_exists = primary_email_exists(cursor, new_uname, domain)
+
+	else:
+		pass
 	
 	unique = 1
-	while userexists == True:
-		userexists = user_exists(mycursor, uid, domain_id, new_uname)
-
+	while user_exists == True:
+		user_exists = primary_email_exists(cursor, new_uname, domain)
 		try_uname = new_uname+str(unique)
-		#try_uname = uname+str(unique) #I don't know what this is
-		userexists = user_exists(mycursor, uid, domain_id, try_uname)
-		
+		user_exists = primary_email_exists(cursor, try_uname, domain)
 		unique = unique + 1
-		
 		log.info("Duplicate Username Avoided %s" %try_uname)
 	
 	if try_uname:
 		new_uname = try_uname
 
-	return new_uname
+	return new_uname+'@'+domain
 
 
 
