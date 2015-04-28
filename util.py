@@ -69,3 +69,10 @@ def return_datetime(iso8601s):
 
 def year_as_string():
 	return datetime.datetime.strftime(datetime.datetime.now(), '%Y')
+
+
+def json_date_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+    if isinstance(obj, datetime):
+        serial = obj.isoformat()
+        return serial

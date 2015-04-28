@@ -12,24 +12,21 @@
 # The JSON request https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#create_user
 # This script https://developers.google.com/admin-sdk/directory/v1/quickstart/quickstart-python#step_2_install_the_google_client_library
 
-from googleapiclient.model import makepatch
 
+import json
+import csv
+import sys
 from logger.log import log
+from googleapiclient.model import makepatch
 from config import config
 from gservice.directoryservice import DirectoryService
 from gservice import users
 from database import queries
 import database.mysql.base
 import database.oracle.base
-import sys
+
 
 log.info('Starting Bixby')
-
-
-# ds = DirectoryService()
-# us = ds.users()
-
-
 
 
 def refresh_staff_py(oracursor, mycursor):
@@ -78,8 +75,6 @@ def multidb_bulk_insert(sourcecursor, destinationcursor, sourcequery, destinatio
 	dcursor.executemany(dest_query, srow_data)
 
 
-
-
 def paginate(service_object, **kwargs):
 	"""This is going to be darn useful. I wonder if this is where a decorator 
 		would be handy?"""
@@ -103,14 +98,70 @@ def paginate(service_object, **kwargs):
 
 	return all_pages
 
+
+def dump_all_users_from_google():
+	"""Dumps all users from Google Domain to a JSON File"""
+	ds = DirectoryService()
+	us = ds.users()
+	all_users_json = paginate(us, projection='full', customer='my_customer', viewType='admin_view')
+	file_path = 'private/%s.all_users.json' %config.PRIMARY_DOMAIN
+	with open(file_path, 'wb') as f:
+		f.write(json.dumps(all_users_json, indent=4))
+
+
+def sync_all_users_from_google(cursor=None, user_service=None):
+	file_path = 'private/%s.all_users.json' %config.PRIMARY_DOMAIN
+	with open(file_path, 'rb') as f:
+		all_users_json = json.loads(f.read())
+
+	lookup_table = build_uid_lookup(file_path=None)
 	
+	for google_user in all_users_json:
+		original_user = users.update_from_json_object(google_user)
+		primary_email = original_user.get('PRIMARY_EMAIL')
+		external_uid = lookup_table.get(primary_email)
+
+		if external_uid:
+			update_user = original_user.copy() 
+			update_user.update(external_uid)
+		# print update_user
+
+			if cursor is None:
+				print update_user
+			else:
+				users.insert_user_from_dictionary(cursor, 'bixby_user', update_user)
+				
+				patch = {"externalIds": [
+	            		{ "customType": external_uid.get('USER_TYPE'), 
+	                	"type": "custom", 
+	                	"value": external_uid.get('EXTERNAL_UID') }
+	                ]
+	             }
+				if patch and user_service:
+					user_service.patch(userKey=primary_email, body=patch).execute()
 
 
 
-def test():
-	all_users = paginate()
-	for u in all_users:
-		print u['primaryEmail'], u['orgUnitPath']
+
+def build_uid_lookup(file_path=None):
+	"""Reads the lookup file and builds the lookuptable that maps the external_uid
+	to the users email which is essential to making bixby function"""
+	if file_path is None:
+		file_path = 'private/%s.lookuptable.csv' %config.PRIMARY_DOMAIN
+	lookup_dict = {}
+	with open(file_path, 'rb') as f:
+		reader = csv.reader(f, delimiter=',')
+		for row in reader:
+			lookup_dict[row[3]] = {'PRIMARY_EMAIL': row[3], 
+															'EXTERNAL_UID': row[4], 
+															'USER_TYPE': row[0]}
+	return lookup_dict 
+
+
+
+
+
+
 
 
 def main():
@@ -120,8 +171,13 @@ def main():
 	ocon = database.oracle.base.CursorWrapper()
 	oc = ocon.cursor
 
-	refresh_staff_py(oc, mc)
-	refresh_students_py(oc, mc)
+	ds = DirectoryService()
+	us = ds.users()
+
+	#refresh_staff_py(oc, mc)
+	#refresh_students_py(oc, mc)
+	#dump_all_users_from_google()
+	sync_all_users_from_google(cursor=mc, user_service=us)
 
 
 if __name__ == '__main__':

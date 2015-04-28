@@ -16,7 +16,7 @@ from database.mysql.base import CursorWrapper
 from database import queries
 from logger.log import log
 from gservice.directoryservice import DirectoryService
-from util import un_map, return_datetime
+from util import un_map, return_datetime, json_date_serial
 
 
 bixby_user_map = {'bixbyId': 'ID',
@@ -233,7 +233,6 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 			else:
 				log.debug("""No Change Skippng User: %s, %s""" 
 										%(self.external_uid, self.user_type))
-
 		else:
 			#  # What was this for?
 			new_user_object = self._get_new_user_object(external_uid, user_type)
@@ -352,9 +351,6 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 		return self.sp.payload
 
 
-
-
-
 def get_external_uid_from_json(uid_list):
 	"""
 	returns the external_uid out of the google json object as a dictionary
@@ -392,22 +388,22 @@ def update_from_json_object(json_object):
 
 
 def insert_user_from_dictionary(cursor, table, dictionary):
-		places = ', '.join(['%s'] * len(dictionary))
-		columns = ', '.join(dictionary.keys())
-		sql = """INSERT INTO %s (%s) VALUES (%s)""" %(table, columns, places)
-		log.debug(sql)
-		cursor.execute(sql, dictionary.values())
-		log.info('Inserting Record %s' %json.dumps(dictionary))
+	places = ', '.join(['%s'] * len(dictionary))
+	columns = ', '.join(dictionary.keys())
+	sql = """INSERT INTO %s (%s) VALUES (%s)""" %(table, columns, places)
+	log.debug(sql)
+	cursor.execute(sql, dictionary.values())
+	log.info('Inserting Record %s' %json.dumps(dictionary, default=json_date_serial))
 
 
 def update_user_from_dictionary(cursor, bixby_id, dictionary):
-		update = 'UPDATE bixby_user SET {}'
-		columns = update.format(', '.join('{}=%s'.format(k) for k in dictionary))
-		where = ' WHERE id = %s' %bixby_id
-		sql = columns + where
-		log.debug(sql)
-		cursor.execute(sql, dictionary.values())
-		log.info('Updateing User %s Record %s' %(bixby_id, str(dictionary) ))
+	update = 'UPDATE bixby_user SET {}'
+	columns = update.format(', '.join('{}=%s'.format(k) for k in dictionary))
+	where = ' WHERE id = %s' %bixby_id
+	sql = columns + where
+	log.debug(sql)
+	cursor.execute(sql, dictionary.values())
+	log.info('Updateing User %s Record %s' %(bixby_id, str(dictionary) ))
 
 
 

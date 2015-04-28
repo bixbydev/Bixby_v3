@@ -86,7 +86,7 @@ insert_staff_py = """INSERT INTO STAFF_PY (EXTERNAL_UID
 insert_students_py = """INSERT INTO STUDENTS_PY (EXTERNAL_UID
 											, SCHOOLID
 											, STUDENT_NUMBER
-											, FIRST_NAME
+											, GIVEN_NAME
 											, FAMILY_NAME
 											, MIDDLE_NAME
 											, DOB
