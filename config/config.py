@@ -22,7 +22,10 @@ from logger.log import log
 
 log.debug('The Config File is Logging')
 
-CONFIG_FILE = 'config/config.ini' # To-Do: Move this somewhere else
+
+PRIVATE_DIRECTORY = '/Users/bhilton/Software_Projects/git/bixby_private'
+
+CONFIG_FILE = os.path.join(PRIVATE_DIRECTORY, 'config.ini') 
 config = ConfigParser(allow_no_value=True)
 config.read(CONFIG_FILE)
 
@@ -41,7 +44,9 @@ STAFF_DOMAIN = unicode(PRIMARY_DOMAIN)
 STUDENT_DOMAIN = unicode(config.get(GSCOPE, 'STUDENT_DOMAIN'))
 CLIENT_ID = config.get(GSCOPE, 'CLIENT_ID')
 CLIENT_SECRET = config.get(GSCOPE, 'CLIENT_SECRET')
-AUTH_FILE = config.get(GSCOPE, 'AUTH_FILE')
+AUTH_FILE = os.path.join(PRIVATE_DIRECTORY, config.get(GSCOPE, 'AUTH_FILE'))
+LOOKUP_TABLE_CSV = os.path.join(PRIVATE_DIRECTORY, PRIMARY_DOMAIN+'.lookuptable.csv')
+ALL_USERS_JSON = os.path.join(PRIVATE_DIRECTORY, PRIMARY_DOMAIN+'all_users.json')
 
 GTIME_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
 GEXPIRY_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
@@ -68,7 +73,7 @@ OU_CSV_FILE_PATH = config.get('Bixby', 'orgunitcsvfile')
 
 
 # MySQL Configuration Section
-MYSQL_BACKUPPATH = config.get('MySQL', 'backup_path')
+MYSQL_BACKUPPATH = os.path.join(PRIVATE_DIRECTORY, config.get('MySQL', 'backup_path'))
 MYSQL_DB = config.get('MySQL', 'db')
 MYSQL_HOST = config.get('MySQL', 'host')
 MYSQL_USER = config.get('MySQL', 'user')

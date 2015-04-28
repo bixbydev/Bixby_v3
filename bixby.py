@@ -99,12 +99,11 @@ def paginate(service_object, **kwargs):
 	return all_pages
 
 
-def dump_all_users_from_google():
+def dump_all_users_json(file_path=None):
 	"""Dumps all users from Google Domain to a JSON File"""
 	ds = DirectoryService()
 	us = ds.users()
 	all_users_json = paginate(us, projection='full', customer='my_customer', viewType='admin_view')
-	file_path = 'private/%s.all_users.json' %config.PRIMARY_DOMAIN
 	with open(file_path, 'wb') as f:
 		f.write(json.dumps(all_users_json, indent=4))
 
@@ -114,12 +113,13 @@ def sync_all_users_from_google(cursor=None, user_service=None):
 	with open(file_path, 'rb') as f:
 		all_users_json = json.loads(f.read())
 
-	lookup_table = build_uid_lookup(file_path=None)
+	lookup_table = build_uid_lookup(file_path=config.LOOKUP_TABLE_CSV)
 	
 	for google_user in all_users_json:
 		original_user = users.update_from_json_object(google_user)
 		primary_email = original_user.get('PRIMARY_EMAIL')
-		external_uid = lookup_table.get(primary_email)
+		user_key = primary_email
+		external_uid = lookup_table.get(user_key)
 
 		if external_uid:
 			update_user = original_user.copy() 
@@ -138,7 +138,7 @@ def sync_all_users_from_google(cursor=None, user_service=None):
 	                ]
 	             }
 				if patch and user_service:
-					user_service.patch(userKey=primary_email, body=patch).execute()
+					user_service.patch(userKey=user_key, body=patch).execute()
 
 
 
@@ -146,8 +146,6 @@ def sync_all_users_from_google(cursor=None, user_service=None):
 def build_uid_lookup(file_path=None):
 	"""Reads the lookup file and builds the lookuptable that maps the external_uid
 	to the users email which is essential to making bixby function"""
-	if file_path is None:
-		file_path = 'private/%s.lookuptable.csv' %config.PRIMARY_DOMAIN
 	lookup_dict = {}
 	with open(file_path, 'rb') as f:
 		reader = csv.reader(f, delimiter=',')
@@ -176,8 +174,8 @@ def main():
 
 	#refresh_staff_py(oc, mc)
 	#refresh_students_py(oc, mc)
-	#dump_all_users_from_google()
-	sync_all_users_from_google(cursor=mc, user_service=us)
+	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
+	#sync_all_users_from_google(cursor=mc, user_service=us)
 
 
 if __name__ == '__main__':
