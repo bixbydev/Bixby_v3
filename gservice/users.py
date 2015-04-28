@@ -203,7 +203,7 @@ class GoogleJSON(BaseUser):
 		return self.domain_to_usertype[domain]
 
 
-class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
+class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 	def __init__(self):
 		CursorWrapper.__init__(self)
 		DirectoryService.__init__(self)
@@ -220,7 +220,12 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 			user_object_from_bixby = self._get_user_object_by_id(self.bixby_id)
 			user_object_from_py = self._get_user_object_from_py_table(self.external_uid, self.user_type)
 
-			patch = makepatch(user_object_from_bixby, user_object_from_py)
+			if user_object_from_py.get('ERROR'):
+				patch = None
+				log.warn(user_object_from_py.get('ERROR'))
+			else:
+				patch = makepatch(user_object_from_bixby, user_object_from_py)
+
 			if patch:
 				log.info('Patching user %s with patch %s' 
 										%(self.bixby_id, str(patch)))
@@ -236,7 +241,7 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 		else:
 			#  # What was this for?
 			new_user_object = self._get_new_user_object(external_uid, user_type)
-			if new_user_object['suspended'] == False:
+			if new_user_object.get('suspended') == False:
 				self.new_user(external_uid, user_type)
 				log.info("Creating User %s" %self.new_username)
 				new_user_object['primaryEmail'] = self.new_username
@@ -246,7 +251,10 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 				insert_user_from_dictionary(self.cursor, 'bixby_user', insert)
 
 			else:
+				# TODO (bixbydev): Something must be done about this. It's a hack.
 				log.debug('Skipping suspended user')
+				if new_user_object.get('ERROR'):
+					log.warn(new_user_object.get('ERROR'))
 
 	def new_user(self, external_uid, user_type):
 		try:
@@ -321,7 +329,12 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 			self.sp = BaseUser(**d)
 			# Add the new password
 			self.sp.payload['password'] = password
-		return self.sp.payload
+			return self.sp.payload
+		else:
+			# This is so wrong. There are a ton of users who will keep triggering
+			# this until it is fixed.
+			error_string = 'INVALID USER UID: %s, Type: %s' %(external_uid, user_type)
+			return {'ERROR': error_string }
 
 	def _get_user_object_from_py_table(self, external_uid, user_type):
 		"""Looks in the staf_py table and returns a google object"""
@@ -330,7 +343,7 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 			q = queries.sql_get_staff_py
 
 		elif user_type == 'student':
-			q = queries.sql_get_student_py
+			q = queries.sql_get_students_py
 
 		else:
 			q = None
@@ -346,7 +359,8 @@ class BixbyUser3(BaseUser, CursorWrapper, DirectoryService):
 				d[k] = v
 			self.sp = BaseUser(**d)
 		else:
-			self.sp = {}
+			error_string = 'NON-MANAGED UID: %s Type: %s' %(external_uid, user_type)
+			return {'ERROR': error_string } 
 		
 		return self.sp.payload
 
@@ -404,136 +418,6 @@ def update_user_from_dictionary(cursor, bixby_id, dictionary):
 	log.debug(sql)
 	cursor.execute(sql, dictionary.values())
 	log.info('Updateing User %s Record %s' %(bixby_id, str(dictionary) ))
-
-
-
-
-
-
-
-
-class BixbyUser(BaseUser, CursorWrapper):
-	def __init__(self):
-		CursorWrapper.__init__(self)
-
-	def _check_user_exists(self, primary_email):
-		self.cursor.execute(queries.sql_get_bixby_user, (primary_email,))
-		bixby_user = self.cursor.fetchone()
-		if bixby_user:
-			self.user_in_db = True
-			self.bixby_id = bixby_user[0]
-			print bixby_user
-			self._db_user_object(user_type = bixby_user[1],
-								primary_email = bixby_user[2],
-								given_name = bixby_user[3],
-								family_name = bixby_user[4],
-								external_uid = bixby_user[5],
-								suspended = bool(bixby_user[6]),
-								change_password = bool(bixby_user[7]),
-								ou_path = bixby_user[9]
-								)
-		else:
-			self.user_in_db = False
-
-	def _db_user_object(self, 
-					user_type,
-					primary_email,
-					given_name,
-					family_name,
-					external_uid,
-					suspended,
-					change_password,
-					ou_path):
-		BaseUser.__init__(self, 
-							user_type=user_type, 
-							primary_email=primary_email,
-							given_name=given_name,
-							family_name=family_name,
-							external_uid=external_uid,
-							password=None,
-							suspended=suspended,
-							change_password=change_password,
-							ou_path=ou_path)
-		
-	def _insert_new_user(self, google_data):
-		insert = {}
-		# for k in google_data.payload.iterkeys():
-		#   db_key = bixby_user_map.get(k)
-		#   d[db_key] = google_data.payload[k]
-
-		# for k in google_data.data.iterkeys():
-		#   db_key = bixby_user_map.get(k)
-		#   if db_key:
-		#     insert[db_key] = google_data.data[k]
-
-		insert['USER_TYPE'] = google_data.user_type
-		insert['GIVEN_NAME'] = google_data.data.get('name').get('givenName')
-		insert['FAMILY_NAME'] = google_data.data.get('name').get('familyName')
-		insert['PRIMARY_EMAIL'] = google_data.data.get('primaryEmail')
-		insert['GOOGLE_ID'] = google_data.data.get('id')
-		insert['LASTLOGIN_DATE'] = return_datetime(google_data.data.get('lastLoginTime'))
-		insert['GLOBAL_ADDRESSBOOK'] = int(google_data.data.get('includeInGlobalAddressList'))
-		insert['CREATION_DATE'] = return_datetime(google_data.data.get('creationTime'))
-		insert['ETAG'] = google_data.data.get('etag')
-		insert['SUSPENDED'] = int(google_data.data.get('suspended'))
-		insert['CHANGE_PASSWORD'] = int(google_data.data.get('changePasswordAtNextLogin'))
-		insert['OU_PATH'] = google_data.data.get('orgUnitPath')
-
-		if google_data.payload.get('externalIds') == None:
-			uid = self.__get_uid_from_lookuptable(google_data.data.get('primaryEmail'))
-			if uid:
-				google_data._set_external_uid(uid) # this will go in payload
-				# google_data.payload['externalIds']
-				insert['EXTERNAL_UID'] = uid
-
-		
-		self.__insert_dict('bixby_user', insert)
-
-	def __get_uid_from_lookuptable(self, primary_email):
-		self.cursor.execute(queries.lookup_external_uid, (primary_email,))
-		uid = self.cursor.fetchone()
-		if uid:
-			return uid[0]
-		else:
-			return uid
-
-
-	def load_bixby_db_from_google_json(self, json_object):
-		google_object = GoogleJSON(json_object)
-		self._check_user_exists(google_object.payload['primaryEmail'])
-		if self.user_in_db == False:
-			print "I would insert this object", google_object.payload['primaryEmail']
-			
-			return self._insert_new_user(google_object)
-
-		else:
-			"""makepatch(original, updated)
-			The original will be compared to the updated.
-			Differences in updated will be returned.
-			"""
-			patch = makepatch(google_object.payload, self.payload)
-			print "User: %s Should Be Patched" %self.payload.get('primaryEmail')
-			print 
-			
-	def __insert_dict(self, table, dictionary):
-		places = ', '.join(['%s'] * len(dictionary))
-		columns = ', '.join(dictionary.keys())
-		sql = """INSERT INTO %s (%s) VALUES (%s)""" %(table, columns, places)
-		self.cursor.execute(sql, dictionary.values())
-		#print sql %dictionary.values()
-		log.insert('Inserting Record')
-
-	def __update_dict(self, table, b):
-		pass
-
-
-
-
-
-
-
-
-
 
 
 def sanatize_username(username_string):

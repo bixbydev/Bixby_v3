@@ -18,12 +18,16 @@ import csv
 import sys
 from logger.log import log
 from googleapiclient.model import makepatch
+
+
 from config import config
 from gservice.directoryservice import DirectoryService
 from gservice import users
 from database import queries
 import database.mysql.base
 import database.oracle.base
+from config import config
+
 
 
 log.info('Starting Bixby')
@@ -109,7 +113,7 @@ def dump_all_users_json(file_path=None):
 
 
 def sync_all_users_from_google(cursor=None, user_service=None):
-	file_path = 'private/%s.all_users.json' %config.PRIMARY_DOMAIN
+	file_path = config.ALL_USERS_JSON
 	with open(file_path, 'rb') as f:
 		all_users_json = json.loads(f.read())
 
@@ -122,23 +126,29 @@ def sync_all_users_from_google(cursor=None, user_service=None):
 		external_uid = lookup_table.get(user_key)
 
 		if external_uid:
-			update_user = original_user.copy() 
-			update_user.update(external_uid)
-		# print update_user
+			q_email = 'SELECT EXTERNAL_UID FROM bixby_user WHERE PRIMARY_EMAIL = %s'
+			cursor.execute(q_email, (primary_email,))
+			uid_in_bixby = cursor.fetchone() 
+			if uid_in_bixby is None:
+				update_user = original_user.copy() 
+				update_user.update(external_uid)
 
-			if cursor is None:
-				print update_user
-			else:
-				users.insert_user_from_dictionary(cursor, 'bixby_user', update_user)
+				if cursor is None:
+					print update_user
+
+				else:
+					users.insert_user_from_dictionary(cursor, 'bixby_user', update_user)
 				
-				patch = {"externalIds": [
-	            		{ "customType": external_uid.get('USER_TYPE'), 
-	                	"type": "custom", 
-	                	"value": external_uid.get('EXTERNAL_UID') }
-	                ]
-	             }
-				if patch and user_service:
-					user_service.patch(userKey=user_key, body=patch).execute()
+					patch = {"externalIds": [
+		            		{ "customType": external_uid.get('USER_TYPE'), 
+		                	"type": "custom", 
+		                	"value": external_uid.get('EXTERNAL_UID') }
+		                ]
+		             }
+					if patch and user_service:
+						user_service.patch(userKey=user_key, body=patch).execute()
+			else:
+				log.debug('User Skipped: %s' %primary_email)
 
 
 
@@ -156,15 +166,29 @@ def build_uid_lookup(file_path=None):
 	return lookup_dict 
 
 
+def refresh_users(users_list):
+	bu = users.BixbyUser()
+	for external_uid, user_type in users_list:
+		print external_uid, user_type
+		bu.init_user(external_uid, user_type)
+
+def random_users(cursor):
+	sql = """SELECT EXTERNAL_UID, USER_TYPE
+					FROM bixby_user
+
+					ORDER BY RAND()
+					LIMIT 2
+					"""
+	cursor.execute(sql)
+	random_users = cursor.fetchall()
+	return random_users
 
 
-
-
-
+mcon = database.mysql.base.CursorWrapper()
+mc = mcon.cursor
 
 def main():
-	mcon = database.mysql.base.CursorWrapper()
-	mc = mcon.cursor
+
 
 	ocon = database.oracle.base.CursorWrapper()
 	oc = ocon.cursor
@@ -175,7 +199,9 @@ def main():
 	#refresh_staff_py(oc, mc)
 	#refresh_students_py(oc, mc)
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
-	#sync_all_users_from_google(cursor=mc, user_service=us)
+	sync_all_users_from_google(cursor=mc, user_service=us)
+	random_users_list = random_users(mc)
+	refresh_users(random_users_list)
 
 
 if __name__ == '__main__':
