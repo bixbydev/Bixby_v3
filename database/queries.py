@@ -123,10 +123,8 @@ sql_get_bixby_user = """SELECT ID
 
 sql_get_staff_py = """SELECT bu.ID
 							, 'staff' AS USER_TYPE
-							, COALESCE(
-								CONCAT(sp.BUSD_EMAIL_ADDRESS
-									, '@gtest.berkeley.net') 
-								, bu.PRIMARY_EMAIL) PRIMARY_EMAIL
+							, COALESCE(sp.BUSD_EMAIL_ADDRESS
+										, bu.PRIMARY_EMAIL) PRIMARY_EMAIL
 							, SP.GIVEN_NAME
 							, SP.FAMILY_NAME
 							, sp.EXTERNAL_UID

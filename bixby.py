@@ -172,14 +172,25 @@ def refresh_users(users_list):
 		print external_uid, user_type
 		bu.init_user(external_uid, user_type)
 
-def random_users(cursor):
+
+def current_users(cursor, user_type=None, random=False, limit=None):
+	params = []
 	sql = """SELECT EXTERNAL_UID, USER_TYPE
 					FROM bixby_user
-
-					ORDER BY RAND()
-					LIMIT 2
 					"""
-	cursor.execute(sql)
+	if user_type in ('staff', 'student'):
+		sql += '\nWHERE USER_TYPE = %s'
+		params.append(user_type)
+
+	if random == True:
+		sql += '\nORDER BY RAND()'
+
+	if limit:
+		assert(type(limit)) == int
+		sql += "\nLIMIT %s"
+		params.append(limit)
+
+	cursor.execute(sql, params)
 	random_users = cursor.fetchall()
 	return random_users
 
@@ -188,20 +199,18 @@ mcon = database.mysql.base.CursorWrapper()
 mc = mcon.cursor
 
 def main():
-
-
 	ocon = database.oracle.base.CursorWrapper()
 	oc = ocon.cursor
 
 	ds = DirectoryService()
 	us = ds.users()
 
-	#refresh_staff_py(oc, mc)
-	#refresh_students_py(oc, mc)
+	refresh_staff_py(oc, mc)
+	refresh_students_py(oc, mc)
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
-	sync_all_users_from_google(cursor=mc, user_service=us)
-	random_users_list = random_users(mc)
-	refresh_users(random_users_list)
+	#sync_all_users_from_google(cursor=mc, user_service=us)
+	users_list = current_users(mc, random=False)
+	refresh_users(users_list)
 
 
 if __name__ == '__main__':

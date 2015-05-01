@@ -9,6 +9,7 @@
 
 
 import json
+import time
 
 from googleapiclient.model import makepatch
 from config import config
@@ -218,8 +219,8 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 			self.__get_bixby_id(external_uid, user_type)
 			self.user_key = self.__get_user_key()
 			user_object_from_bixby = self._get_user_object_by_id(self.bixby_id)
-			user_object_from_py = self._get_user_object_from_py_table(self.external_uid, self.user_type)
-
+			user_object_from_py = self._get_user_object_from_py_table(self.external_uid, self.user_type) 
+			username = self.bu.payload.get('primaryEmail')
 			if user_object_from_py.get('ERROR'):
 				patch = None
 				log.warn(user_object_from_py.get('ERROR'))
@@ -227,13 +228,15 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 				patch = makepatch(user_object_from_bixby, user_object_from_py)
 
 			if patch:
-				log.info('Patching user %s with patch %s' 
-										%(self.bixby_id, str(patch)))
-
+				log.info('Patching user %s %s with patch %s' 
+										%(username,
+											self.bixby_id, 
+											str(patch)))
 				patch_result = self.uservice.patch(userKey=self.user_key,
 													 body=patch).execute()
 				update_object = update_from_json_object(patch_result)
 				update_user_from_dictionary(self.cursor, self.bixby_id, update_object)
+				#time.sleep(1)
 
 			else:
 				log.debug("""No Change Skippng User: %s, %s""" 
@@ -341,9 +344,11 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 		# This is redundant but I need to make this work so this is redundant
 		if user_type == 'staff':
 			q = queries.sql_get_staff_py
+			domain = 'berkeley.net'
 
 		elif user_type == 'student':
 			q = queries.sql_get_students_py
+			domain = 'students.berkeley.net'
 
 		else:
 			q = None
@@ -357,7 +362,15 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 			for k, v in zip(columns, values):
 				k = k.lower()
 				d[k] = v
+			# Breakup the username in case no domain is associated
+			# TODO (bixbydev): use the domain from the UserType Class
+			username = d.get('primary_email').split('@')
+			if len(username) == 1:
+				d['primary_email'] = username[0]+'@'+domain
+				log.debug('Fixed Up Username %s' %(username[0]+'@'+domain,) )
+
 			self.sp = BaseUser(**d)
+
 		else:
 			error_string = 'NON-MANAGED UID: %s Type: %s' %(external_uid, user_type)
 			return {'ERROR': error_string } 
