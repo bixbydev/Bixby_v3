@@ -201,6 +201,31 @@ get_new_staff_py = """SELECT 'staff' AS USER_TYPE
 						WHERE sp.EXTERNAL_UID = %s"""
 
 
+new_staff_and_students = """SELECT sp.EXTERNAL_UID 
+							, 'student'
+							FROM students_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'student'
+							WHERE sp.EXTERNAL_USERSTATUS = 0
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL
+							AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+
+								UNION 
+
+							SELECT sp.EXTERNAL_UID
+							, 'staff' 
+							FROM staff_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'staff'
+							WHERE sp.EXTERNAL_USERSTATUS = 0
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL"""
+
+
+
 get_user_key = """SELECT coalesce(GOOGLE_ID, PRIMARY_EMAIL) userkey
 					FROM bixby_user
 					WHERE id = %s"""

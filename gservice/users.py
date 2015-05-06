@@ -223,7 +223,7 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 			username = self.bu.payload.get('primaryEmail')
 			if user_object_from_py.get('ERROR'):
 				patch = None
-				log.warn(user_object_from_py.get('ERROR'))
+				log.debug(user_object_from_py.get('ERROR'))
 			else:
 				patch = makepatch(user_object_from_bixby, user_object_from_py)
 

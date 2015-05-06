@@ -157,7 +157,7 @@ def build_uid_lookup(file_path=None):
 	"""Reads the lookup file and builds the lookuptable that maps the external_uid
 	to the users email which is essential to making bixby function"""
 	lookup_dict = {}
-	with open(file_path, 'rb') as f:
+	with open(file_path, 'rU') as f:
 		reader = csv.reader(f, delimiter=',')
 		for row in reader:
 			lookup_dict[row[3]] = {'PRIMARY_EMAIL': row[3], 
@@ -167,9 +167,11 @@ def build_uid_lookup(file_path=None):
 
 
 def refresh_users(users_list):
+	"""Takes a list of tuples with external_uid and user_type"""
+	# TODO (bixbydev): validate the list
 	bu = users.BixbyUser()
 	for external_uid, user_type in users_list:
-		print external_uid, user_type
+		# print external_uid, user_type
 		bu.init_user(external_uid, user_type)
 
 
@@ -191,8 +193,14 @@ def current_users(cursor, user_type=None, random=False, limit=None):
 		params.append(limit)
 
 	cursor.execute(sql, params)
-	random_users = cursor.fetchall()
-	return random_users
+	users = cursor.fetchall()
+	return users
+
+def new_staff_and_students(cursor):
+	cursor.execute(queries.new_staff_and_students)
+	new_users = cursor.fetchall()
+	return new_users
+
 
 
 mcon = database.mysql.base.CursorWrapper()
@@ -208,9 +216,12 @@ def main():
 	refresh_staff_py(oc, mc)
 	refresh_students_py(oc, mc)
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
-	#sync_all_users_from_google(cursor=mc, user_service=us)
+	sync_all_users_from_google(cursor=mc, user_service=us)
 	users_list = current_users(mc, random=False)
 	refresh_users(users_list)
+	new_users = new_staff_and_students(mc)
+	refresh_users(new_users)
+
 
 
 if __name__ == '__main__':
