@@ -89,7 +89,7 @@ class DirectoryService(object):
 
 
 
-def paginate(service_object, **kwargs):
+def paginate(service_object, method='users', **kwargs):
 	"""This is going to be darn useful. I wonder if this is where a decorator 
 		would be handy?
 
@@ -107,7 +107,7 @@ def paginate(service_object, **kwargs):
 
 		current_page = request.execute()
 
-		all_pages.extend(current_page['users'])
+		all_pages.extend(current_page[method])
 
 		request = service_object.list_next(request, current_page)
 
