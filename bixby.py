@@ -216,7 +216,7 @@ def main():
 	refresh_staff_py(oc, mc)
 	refresh_students_py(oc, mc)
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
-	sync_all_users_from_google(cursor=mc, user_service=us)
+	#sync_all_users_from_google(cursor=mc, user_service=us)
 	users_list = current_users(mc, random=False)
 	refresh_users(users_list)
 	new_users = new_staff_and_students(mc)

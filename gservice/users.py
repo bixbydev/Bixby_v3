@@ -510,10 +510,6 @@ def unique_username(cursor, external_uid, user_type):
 
 
 
-
-
-
-
 def refresh_bixby_from_google(users_objects):
 	bu = BixbyUser()
 	for user in users_objects:

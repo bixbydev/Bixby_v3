@@ -87,6 +87,12 @@ class DirectoryService(object):
 	def users(self):
 		return self.directory_service.users()
 
+	def groups(self):
+		return self.directory_service.groups()
+
+	def members(self):
+		return self.directory_service.members()
+
 
 
 def paginate(service_object, method='users', **kwargs):
