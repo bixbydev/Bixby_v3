@@ -185,6 +185,11 @@ class SchemaBuilder(object):
             #print arg, value #Remove
             self.__setattr__(arg, value)
 
+    def construct(self, **kwargs):
+        for arg, value in kwargs.iteritems():
+            #print arg, value #Remove
+            self.__setattr__(arg, value)
+
 
 
 
@@ -194,6 +199,15 @@ def valid_int(value):
         return value
     else:
         return int(value)
+
+
+def add_group_member():
+    pass
+
+
+
+
+
 
 
 def populate_group_id(json_file_path):
@@ -247,6 +261,8 @@ def populate_group_members(cursor, member_service, google_groupid):
 
 
 def insert_member(cursor, table, google_groupid, db_payload):
+    """This was used for the initial sync of members.
+    This funciton is replaced by insert_group_member()"""
     places = '%s, '+', '.join(['%s'] * len(db_payload))
     db_keys = db_payload.keys()
     db_keys.insert(0, 'GOOGLE_GROUPID')

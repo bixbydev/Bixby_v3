@@ -76,3 +76,12 @@ def json_date_serial(obj):
     if isinstance(obj, datetime):
         serial = obj.isoformat()
         return serial
+
+
+def chunks(li, n):
+	"""Takes two arguments.
+		a list, li
+		lists n length, n
+	Splits the list into a list of lists with n items."""
+	return [li[i:i+n] for i in range(0, len(li), n)]
+
