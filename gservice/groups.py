@@ -88,33 +88,39 @@ member_schema = """{
             "type": "string",
             "required": true,
             "column": "ROLE",
-            "enum": ["MEMBER", "OWNER", "MANAGER"]
+            "enum": ["MEMBER", "OWNER", "MANAGER"],
+            "api": true
         },
         "type": {
             "type": "string",
             "required": false,
             "column": "TYPE",
-            "enum": ["USER","GROUP"]
+            "enum": ["USER","GROUP"],
+            "api": true
         },
         "email": {
             "type": "string",
-            "required": false
+            "required": false,
+            "api": true
         },
         "id": {
             "description": "The google ID of the member",
             "type": "string",
             "required": true,
-            "column": "GOOGLE_USERID"
+            "column": "GOOGLE_USERID",
+            "api": true
         },
         "etag": {
             "type": "string",
             "column": "ETAG",
-            "description": "The etag of the google groups resource"
+            "description": "The etag of the google groups resource",
+            "api": true
         },
         "googleGroupID": {
             "description": "This would be the ID not email of the group",
             "type": "string",
-            "column": "GOOGLE_GROUPID"
+            "column": "GOOGLE_GROUPID",
+            "api": false
         }
     }
 }"""
@@ -146,7 +152,8 @@ class SchemaBuilder(object):
         if name in self.schema_props.iterkeys():
             #print name, value #Remove
             if self.__validate_property(name, value):
-                self.api_payload[name] = value
+                if self.schema_props.get(name).get('api', False):
+                    self.api_payload[name] = value
                 db_col = self.schema_props.get(name).get('column', None)
                 if db_col:
                     self.db_payload[db_col] = value
@@ -201,8 +208,20 @@ def valid_int(value):
         return int(value)
 
 
-def add_group_member():
-    pass
+def insert_json_payload(cursor, table, payload):
+    places = ', '.join(['%s'] * len(payload))
+    col_names = payload.keys()
+    columns = ', '.join(col_names)
+    values = payload.values()
+    update_cols = ', '.join([i+"=%s" for i in col_names])
+    sql = """INSERT INTO %s (%s) VALUES (%s)
+                ON DUPLICATE KEY 
+                    UPDATE %s\n""" %(table, columns, places, update_cols)
+    log.info('Inserted User to Group: %s' %str(values))
+    values += values
+    #print sql %tuple(values)
+    log.debug((sql) %tuple(values))
+    cursor.execute(sql, values)
 
 
 
