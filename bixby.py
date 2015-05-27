@@ -19,7 +19,6 @@ import sys
 from logger.log import log
 from googleapiclient.model import makepatch
 
-
 from config import config
 from gservice.directoryservice import DirectoryService
 from gservice import users
@@ -29,9 +28,7 @@ import database.oracle.base
 from config import config
 
 
-
 log.info('Starting Bixby')
-
 
 def refresh_staff_py(oracursor, mycursor):
 	"""Pulls the staff data from PowerSchool and copies it to Bixby DB
@@ -200,7 +197,6 @@ def new_staff_and_students(cursor):
 	cursor.execute(queries.new_staff_and_students)
 	new_users = cursor.fetchall()
 	return new_users
-
 
 
 mcon = database.mysql.base.CursorWrapper()

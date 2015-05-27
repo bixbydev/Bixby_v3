@@ -16,7 +16,7 @@ import database.mysql.base as mysql
 
 new_group_members_sql = """SELECT bu.PRIMARY_EMAIL
 					, g.GROUP_EMAIL
-					, g.GOOGLE_ID AS GOOGLE_GROUPID
+					, g.GOOGLE_GROUPID AS GOOGLE_GROUPID
 					, bu.GOOGLE_ID GOOGLE_USERID
 					FROM bixby_user AS bu
 					JOIN staff_py AS sp
@@ -27,11 +27,11 @@ new_group_members_sql = """SELECT bu.PRIMARY_EMAIL
 							AND g.GROUP_TYPE = 'SchoolConference'
 					LEFT OUTER JOIN group_member AS gm
 						ON bu.GOOGLE_ID = gm.GOOGLE_USERID
-							AND g.google_id = gm.GOOGLE_GROUPID
+							AND g.GOOGLE_GROUPID = gm.GOOGLE_GROUPID
 					WHERE bu.SUSPENDED = 0
 					AND sp.EXTERNAL_USERSTATUS = 0
 					AND gm.GOOGLE_GROUPID IS NULL
-					LIMIT 25
+					-- LIMIT 25
 					"""
 
 

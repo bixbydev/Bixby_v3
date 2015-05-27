@@ -18,22 +18,6 @@ from logger.log import log
 from gservice.directoryservice import DirectoryService, paginate
 from util import un_map, return_datetime, json_date_serial
 
-
-# class ValidTypes(object):
-#     valid_types = valid_types
-#     def __init__(self):
-#         pass
-
-#     def _validate_type(self, value, data_type):
-#         return isinstance(value, self.valid_types.get(data_type))
-
-#     @classmethod
-#     def validate(cls, value, data_type):
-
-#         return cls._validate(value, data_type)
-# https://www.googleapis.com/discovery/v1/apis/directory/v1/rest
-
-
 group_schema = """{
     "title": "Bixby Group Schema",
     "type": "object",
@@ -63,7 +47,7 @@ group_schema = """{
         "id": {
             "type": "string",
             "required": true,
-            "column": "GOOGLE_ID"
+            "column": "GOOGLE_GROUPID"
         },
         "description": {
             "type": "string",
@@ -230,7 +214,7 @@ def insert_json_payload(cursor, table, payload):
 
 
 def populate_group_id(json_file_path):
-    """This is supposed to be a one time only use to load the GOOGLE_ID"""
+    """This is supposed to be a one time only use to load the GOOGLE_GROUPID"""
     mcon = database.mysql.base.CursorWrapper()
     mc = mcon.cursor
     gs = SchemaBuilder(member_schema)
@@ -304,7 +288,7 @@ def refresh_all_group_members(overwrite=False):
     mc = mcon.cursor
     ds = DirectoryService()
     ms = ds.members()
-    sql = """SELECT GOOGLE_ID, GROUP_EMAIL 
+    sql = """SELECT GOOGLE_GROUPID, GROUP_EMAIL 
             FROM groups
             -- ORDER BY RAND()
             -- LIMIT 2
@@ -315,7 +299,7 @@ def refresh_all_group_members(overwrite=False):
         log.info("""Refreshing Group: %s""" %group[1])
         if overwrite:
             delete = """DELETE FROM group_member
-                            WHERE GOOGLE_ID = %s"""
+                            WHERE GOOGLE_GROUPID = %s"""
             mc.execute(delete, group[0])
 
         populate_group_members(mc, ms, group[0])
