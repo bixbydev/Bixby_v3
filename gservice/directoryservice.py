@@ -76,6 +76,7 @@ http = credentials.authorize(http)
 class DirectoryService(object):
 	def __init__(self):
 		# This is the worker bee.
+		self.http = http
 		self.directory_service = build(serviceName='admin', 
 									version='directory_v1',
 									http=http)
