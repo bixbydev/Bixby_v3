@@ -121,8 +121,6 @@ def refresh_all_google_users(cursor=None, user_service=None):
 		google_id = google_user.get('id')
 		
 		if cursor is None:
-			#print db_payload
-			#print  google_user
 			print primary_email, google_id
 		#users.update_bixby_user_from_dictionary(cursor, google_id, db_payload)
 		insert_json_payload(cursor, 'bixby_user', db_payload)
@@ -230,6 +228,7 @@ def current_users(cursor, user_type=None, random=False, limit=None):
 	params = []
 	sql = """SELECT EXTERNAL_UID, USER_TYPE
 					FROM bixby_user
+					WHERE USER_TYPE IS NOT NULL
 					"""
 	if user_type in ('staff', 'student'):
 		sql += '\nWHERE USER_TYPE = %s'

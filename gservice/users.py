@@ -204,6 +204,34 @@ class GoogleJSON(BaseUser):
 		return self.domain_to_usertype[domain]
 
 
+class UserMod(BaseUser, CursorWrapper):
+	def __init__(self, user_key, key_type='id'):
+		"""Usage: 
+			user_key the google id or primary_email of the user
+			key_type: id or email
+		"""
+		CursorWrapper.__init__(self)
+		assert(id_type) in ('id', 'email', 'bixby')
+		if key_type == 'id':
+			db_key = 'GOOGLE_ID'
+
+		elif key_type == 'email':
+			db_key = 'PRIMARY_EMAIL'
+
+		elif key_type == 'bixby':
+			db_key = 'ID'
+
+		else:
+			raise Exception('Invalid User Key')
+
+		
+
+
+
+
+
+
+
 class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 	def __init__(self):
 		CursorWrapper.__init__(self)
