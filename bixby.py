@@ -80,8 +80,8 @@ def paginate(service_object, **kwargs):
 	"""This is going to be darn useful. I wonder if this is where a decorator 
 		would be handy?"""
 	params = {'customer': 'my_customer',
-            'domain': config.PRIMARY_DOMAIN,
-             'viewType': 'admin_view'}
+			'domain': config.PRIMARY_DOMAIN,
+			 'viewType': 'admin_view'}
 	request = service_object.list(**kwargs)
 	all_pages = []
 	pages = 0
@@ -109,7 +109,61 @@ def dump_all_users_json(file_path=None):
 		f.write(json.dumps(all_users_json, indent=4))
 
 
+def refresh_all_google_users(cursor=None, user_service=None):
+	file_path = config.ALL_USERS_JSON
+	with open(file_path, 'rb') as f:
+		all_users_json = json.loads(f.read())
+
+	for google_user in all_users_json:
+		#if google_user.get('externalIds'):
+		db_payload = users.update_from_json_object(google_user)
+		primary_email  = google_user.get('primaryEmail')
+		google_id = google_user.get('id')
+		
+		if cursor is None:
+			#print db_payload
+			#print  google_user
+			print primary_email, google_id
+		#users.update_bixby_user_from_dictionary(cursor, google_id, db_payload)
+		insert_json_payload(cursor, 'bixby_user', db_payload)
+
+
+def insert_json_payload(cursor, table, payload):
+	""" Usage
+	cursor: is a cursor object to the db to insert/update
+	table: the name of the database table being updated 
+	payload: a json object/dictionary of key/value pairs. 
+		Keys must be column names
+		Values must be valid data types
+		It's not perfect, but it saves time.
+	"""
+	places = ', '.join(['%s'] * len(payload))
+	col_names = payload.keys()
+	columns = ', '.join(col_names)
+	values = payload.values()
+	update_cols = ', '.join([i+"=%s" for i in col_names])
+	sql = """INSERT INTO %s (%s) VALUES (%s)
+				ON DUPLICATE KEY 
+					UPDATE %s\n""" %(table, columns, places, update_cols)
+	log.info('Inserted User to Group: %s' %str(values))
+	values += values
+	log.debug((sql) %tuple(values))
+	if cursor is None:
+		print sql %tuple(values)
+	else:
+		cursor.execute(sql, values)
+
+
+
+
+
+
+
+
 def sync_all_users_from_google(cursor=None, user_service=None):
+	"""This function relies on the lookuptable csv file. It was written to sync
+	users for the first run and update their internal userid
+	This function is being replaces by refresh_all_google_users"""
 	file_path = config.ALL_USERS_JSON
 	with open(file_path, 'rb') as f:
 		all_users_json = json.loads(f.read())
@@ -137,11 +191,11 @@ def sync_all_users_from_google(cursor=None, user_service=None):
 					users.insert_user_from_dictionary(cursor, 'bixby_user', update_user)
 				
 					patch = {"externalIds": [
-		            		{ "customType": external_uid.get('USER_TYPE'), 
-		                	"type": "custom", 
-		                	"value": external_uid.get('EXTERNAL_UID') }
-		                ]
-		             }
+							{ "customType": external_uid.get('USER_TYPE'), 
+							"type": "custom", 
+							"value": external_uid.get('EXTERNAL_UID') }
+						]
+					 }
 					if patch and user_service:
 						user_service.patch(userKey=user_key, body=patch).execute()
 			else:

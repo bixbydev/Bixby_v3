@@ -433,6 +433,20 @@ def update_user_from_dictionary(cursor, bixby_id, dictionary):
 	log.info('Updateing User %s Record %s' %(bixby_id, str(dictionary) ))
 
 
+def update_bixby_user_from_dictionary(cursor, google_id, dictionary):
+	"""Updates bixby_user table using the google supplied ID as the key"""
+	update = 'UPDATE bixby_user SET {}'
+	columns = update.format(', '.join('{}=%s'.format(k) for k in dictionary))
+	where = ' WHERE google_id = %s' %google_id
+	sql = columns + where
+	log.debug(sql)
+	if cursor is None:
+		print sql
+	else:
+		cursor.execute(sql, dictionary.values())
+		log.info('Updateing User %s Record %s' %(google_id, str(dictionary) ))
+
+
 def sanatize_username(username_string):
 	"""Remove special charactors from usernames"""
 	return username_string.translate(None, "\' -;@#$%!.,/").lower()

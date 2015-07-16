@@ -182,6 +182,12 @@ class SchemaBuilder(object):
             self.__setattr__(arg, value)
 
 
+class BatchGroupMembers(SchemaBuilder):
+    def __init__(self):
+        SchemaBuilder.__init__(self, member_schema)
+
+    def func(self):
+        pass
 
 
 
@@ -208,11 +214,6 @@ def insert_json_payload(cursor, table, payload):
     cursor.execute(sql, values)
 
 
-
-
-
-
-
 def populate_group_id(json_file_path):
     """This is supposed to be a one time only use to load the GOOGLE_GROUPID"""
     mcon = database.mysql.base.CursorWrapper()
@@ -224,6 +225,7 @@ def populate_group_id(json_file_path):
     for group in groups:
         gs.new_group(**group)
         update_from_dictionary(mc, 'groups', gs.email, gs.db_payload)
+
 
 def update_from_dictionary(cursor, table, unique_id, db_dict):
     """A database cursor
@@ -303,7 +305,6 @@ def refresh_all_group_members(overwrite=False):
             mc.execute(delete, group[0])
 
         populate_group_members(mc, ms, group[0])
-
 
 
 
