@@ -204,27 +204,48 @@ class GoogleJSON(BaseUser):
 		return self.domain_to_usertype[domain]
 
 
+
+
+
 class UserMod(BaseUser, CursorWrapper):
-	def __init__(self, user_key, key_type='id'):
+	def __init__(self, user, key_type='id'):
 		"""Usage: 
-			user_key the google id or primary_email of the user
+			user: the google id, bixby_id, or primary_email of the user
 			key_type: id or email
 		"""
 		CursorWrapper.__init__(self)
-		assert(id_type) in ('id', 'email', 'bixby')
-		if key_type == 'id':
-			db_key = 'GOOGLE_ID'
+		self.user = user
+		assert(key_type) in ('id', 'email', 'bixby')
+		if key_type == 'id': # Sets the User DB Key for accessing record
+			self._db_key = 'GOOGLE_ID'
 
 		elif key_type == 'email':
-			db_key = 'PRIMARY_EMAIL'
+			self._db_key = 'PRIMARY_EMAIL'
 
-		elif key_type == 'bixby':
-			db_key = 'ID'
+		elif key_type == 'bixby': 
+			# This could be problematic if bixby_id and google_id overlap
+			self._db_key = 'ID'
 
 		else:
-			raise Exception('Invalid User Key')
+			raise Exception('Invalid Key Type: %' %key_type)
 
+		valid_user = self.__get_user_key()
+
+	def __get_user_key(self):
+		valid_user_sql = """SELECT ID, GOOGLE_ID, PRIMARY_EMAIL 
+							FROM bixby_user
+							WHERE %s""" %self._db_key
+		valid_user_sql += """ = %s"""
+		self.cursor.execute(valid_user_sql, (self.user,))
+		identifiers = self.cursor.fetchone()
+		if identifiers:
+			self.bixby_id, self.user_key, self.primary_email = identifiers
+			return True
+
+	def _get_stored_user_obj(self):
+		pass
 		
+
 
 
 
