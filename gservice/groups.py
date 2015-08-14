@@ -171,7 +171,25 @@ class SchemaBuilder(object):
         else:
             return True
 
+    def return_db_col(self):
+        foo = {}
+        for key in self.__dict__.iterkeys():
+            print key
+            prop = self.schema_props.get(key)
+            if prop:
+                col = prop.get('column', None)
+                print col
+                if col and self.__dict__.get(key):
+                    foo[col] = self.__dict__.get(key)
+
+        return foo
+
+    def __clear_schema_props(self):
+        for prop in self.schema_props:
+            self.__setattr__(prop, None)
+
     def new_group(self, **kwargs):
+        self.__clear_schema_props()
         for arg, value in kwargs.iteritems():
             #print arg, value #Remove
             self.__setattr__(arg, value)
@@ -186,9 +204,8 @@ class BatchGroupMembers(SchemaBuilder):
     def __init__(self):
         SchemaBuilder.__init__(self, member_schema)
 
-    def func(self):
+    def batch_gm(self):
         pass
-
 
 
 def valid_int(value):
@@ -250,7 +267,7 @@ def update_from_dictionary(cursor, table, unique_id, db_dict):
         log.info('Inserted Unmanaged Group: %s' %str(db_dict.items()) )
 
     log.info(sql)
-    cursor.execute(sql, db_dict.values() )
+    cursor.execute(sql, db_dict.values())
 
 
 def populate_group_members(cursor, member_service, google_groupid):
