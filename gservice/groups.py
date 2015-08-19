@@ -280,15 +280,6 @@ class BatchGroupMembers(BatchHttpRequest, DirectoryService):
         self.batch.execute(http=self.http)
 
 
-def test_batch():
-    bg = BatchGroupMembers()
-    bg.get_member('technology@berkeley.net', 'bradleyhilton@berkeley.net')
-    bg.get_member('technology@berkeley.net', 'jaynitschke@berkeley.net')
-    bg.get_member('secretaries@berkeley.net', 'jaynitschke@berkeley.net')
-    bg.execute()
-
-
-
 def valid_int(value):
     if isinstance(value, int):
         return value
