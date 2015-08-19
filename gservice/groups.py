@@ -11,6 +11,8 @@ import json
 import time
 
 from googleapiclient.model import makepatch
+from googleapiclient.http import BatchHttpRequest
+
 from config import config
 import database.mysql.base
 from database import queries
@@ -27,36 +29,43 @@ group_schema = """{
         "name": {
             "type": "string",
             "required": true,
-            "column": "GROUP_NAME"
+            "column": "GROUP_NAME",
+            "api": true
         },
         "adminCreated": {
             "description": "Group was created by an Admin User. Read-Only",
             "type": "boolean",
-            "readonly": true
+            "readonly": true,
+            "api": true
         },
         "directMembersCount": {
             "description": "Group direct members count",
             "type": "integer",
-            "readonly": true
+            "readonly": true,
+            "api": false
         },
         "email": {
             "type": "string",
             "required": true,
-            "column": "GROUP_EMAIL"
+            "column": "GROUP_EMAIL",
+            "api": true
         },
         "id": {
             "type": "string",
             "required": true,
-            "column": "GOOGLE_GROUPID"
+            "column": "GOOGLE_GROUPID",
+            "api": true
         },
         "description": {
             "type": "string",
-            "column": "DESCRIPTION"
+            "column": "DESCRIPTION",
+            "api": true
         },
         "etag": {
             "type": "string",
             "column": "ETAG",
-            "description": "The etag of the google groups resource"
+            "description": "The etag of the google groups resource",
+            "api": true
         }
     }
 }"""
@@ -127,20 +136,18 @@ class SchemaBuilder(object):
         self.schema = json.loads(schema)
         self.schema_props = self.schema.get('properties')
         self.db_table = self.schema.get('dbTable')
-        self.api_payload = {}
-        self.db_payload = {}
+        # self.api_payload = {}
+        #self.db_payload = {}
         for prop in self.schema_props:
             self.__setattr__(prop, None)
 
     def __setattr__(self, name, value):
         if name in self.schema_props.iterkeys():
+            pass
             #print name, value #Remove
-            if self.__validate_property(name, value):
-                if self.schema_props.get(name).get('api', False):
-                    self.api_payload[name] = value
-                db_col = self.schema_props.get(name).get('column', None)
-                if db_col:
-                    self.db_payload[db_col] = value
+            # if self.__validate_property(name, value):
+            #     if self.schema_props.get(name).get('api', False):
+            #         self.api_payload[name] = value
         object.__setattr__(self, name, value)
 
     def __is_valid_data_type(self, data_type, value):
@@ -171,41 +178,115 @@ class SchemaBuilder(object):
         else:
             return True
 
-    def return_db_col(self):
-        foo = {}
+    def db_cols(self):
+        dbcols = {}
         for key in self.__dict__.iterkeys():
-            print key
             prop = self.schema_props.get(key)
             if prop:
                 col = prop.get('column', None)
-                print col
                 if col and self.__dict__.get(key):
-                    foo[col] = self.__dict__.get(key)
+                    dbcols[col] = self.__dict__.get(key)
+        return dbcols
 
-        return foo
+    def api_fields(self):
+        payload = {}
+        for key in self.__dict__.iterkeys():
+            prop = self.schema_props.get(key)
+            if prop and prop.get('api', False):
+                value = self.__dict__.get(key)
+                if self.__dict__.get(key):
+                    # and self.__validate_property(name, value): VALIDATE!!! BEH
+                    payload[key] = value
+        return payload
+
+    @property
+    def db_payload(self):
+        return self.db_cols()
+
+    @property
+    def api_payload(self):
+        return self.api_fields()
 
     def __clear_schema_props(self):
         for prop in self.schema_props:
             self.__setattr__(prop, None)
 
-    def new_group(self, **kwargs):
+    def construct(self, **kwargs):
         self.__clear_schema_props()
         for arg, value in kwargs.iteritems():
             #print arg, value #Remove
             self.__setattr__(arg, value)
 
-    def construct(self, **kwargs):
-        for arg, value in kwargs.iteritems():
-            #print arg, value #Remove
-            self.__setattr__(arg, value)
 
 
-class BatchGroupMembers(SchemaBuilder):
+
+
+class ManageGroups(SchemaBuilder, DirectoryService):
+    def __init__(self, schema=member_schema):
+        SchemaBuilder.__init__(self, schema)
+        DirectoryService.__init__(self)
+        self.gs = self.groups()
+        self.ms = self.members()
+
+
+class ManageMembers(DirectoryService):
     def __init__(self):
-        SchemaBuilder.__init__(self, member_schema)
+        DirectoryService.__init__(self)
+        self.ms = self.members()
 
-    def batch_gm(self):
+    def add_member(self, group_key, body):
         pass
+
+
+
+
+
+
+class BatchGroupMembers(BatchHttpRequest, DirectoryService):
+    def __init__(self):
+        self.batch = BatchHttpRequest()
+        DirectoryService.__init__(self)
+        self.ms = self.members()
+        self.request_id = 5
+        self.requests = {}
+
+    def __increment_request_id(self):
+        self.request_id += 1
+
+    def _add_request(self, request, request_id):
+        if self.requests.get(str(request_id)) == None:
+            self.requests[str(self.request_id)] = request
+        else:
+            raise KeyError("Used Request_ID")
+
+        if self.request_id == request_id:
+            self.__increment_request_id()
+
+    def get_member(self, group_key, member_key, request_id=None):
+        if request_id == None:
+            request_id = self.request_id
+        request = (group_key, member_key, 'get')
+        self._add_request(request, request_id=request_id)
+        self.batch.add(self.ms.get(groupKey=group_key, memberKey=member_key), callback=self.print_member, request_id=str(request_id))
+
+    def print_member(self, request_id, response, exception):
+        print request_id, response, exception
+        print self.requests.get(request_id)
+
+    def patch_member(self, group_key, member_key, body):
+        pass
+
+    def execute(self):
+        self.batch.execute(http=self.http)
+
+
+def test_batch():
+    bg = BatchGroupMembers()
+    bg.get_member('technology@berkeley.net', 'bradleyhilton@berkeley.net')
+    bg.get_member('technology@berkeley.net', 'jaynitschke@berkeley.net')
+    bg.get_member('secretaries@berkeley.net', 'jaynitschke@berkeley.net')
+    bg.execute()
+
 
 
 def valid_int(value):
@@ -322,6 +403,18 @@ def refresh_all_group_members(overwrite=False):
             mc.execute(delete, group[0])
 
         populate_group_members(mc, ms, group[0])
+
+
+### Was all the above a waste of time? ###
+
+def insert_or_update_group():
+    pass
+
+
+
+
+
+
 
 
 
