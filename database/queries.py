@@ -132,6 +132,7 @@ sql_get_staff_py = """SELECT bu.ID
 							, 0 AS CHANGE_PASSWORD
 							, 1 GLOBAL_ADDRESSBOOK
 							, '/Staff' AS OU_PATH
+							, 'id:03dmca5l3d4ybj8' GOOGLE_OUID
 
 							FROM staff_py AS sp
 							LEFT OUTER JOIN bixby_user AS bu
@@ -153,7 +154,8 @@ sql_get_students_py = """SELECT bu.ID
 						, sp.SUSPEND_ACCOUNT AS SUSPENDED
 						, 0 AS CHANGE_PASSWORD
 						, 1 GLOBAL_ADDRESSBOOK
-						, CONCAT('/', ou.OU_PATH) AS OU_PATH
+						, ou.OU_PATH
+						, ou.GOOGLE_OUID
 
 						FROM students_py AS sp
 						LEFT OUTER JOIN bixby_user AS bu
@@ -175,7 +177,7 @@ get_new_student_py = """SELECT 'student' AS USER_TYPE
 						, sp.SUSPEND_ACCOUNT AS SUSPENDED
 						, 0 AS CHANGE_PASSWORD
 						, 1 GLOBAL_ADDRESSBOOK
-						, CONCAT('/', ou.OU_PATH) AS OU_PATH
+						, ou.OU_PATH
 						FROM students_py AS sp
 						JOIN orgunit AS ou
 							ON sp.SCHOOLID = ou.DEPARTMENT_ID
@@ -224,6 +226,15 @@ new_staff_and_students = """SELECT sp.EXTERNAL_UID
 							AND sp.SUSPEND_ACCOUNT = 0
 							AND bu.PRIMARY_EMAIL IS NULL"""
 
+new_staff_only = """SELECT sp.EXTERNAL_UID
+							, 'staff' 
+							FROM staff_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'staff'
+							WHERE sp.EXTERNAL_USERSTATUS = 0
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL"""
 
 
 get_user_key = """SELECT coalesce(GOOGLE_ID, PRIMARY_EMAIL) userkey
@@ -240,17 +251,20 @@ lookup_external_uid = """SELECT NEW_EXTERNAL_UID
 						FROM lookup_table
 						WHERE PRIMARY_EMAIL = %s"""
 
-get_userinfo_vary_params = """SELECT ID
-						, USER_TYPE
-						, PRIMARY_EMAIL
-						, GIVEN_NAME
-						, FAMILY_NAME
-						, EXTERNAL_UID
-						, SUSPENDED
-						, CHANGE_PASSWORD
-						, GLOBAL_ADDRESSBOOK
-						, OU_PATH
+get_userinfo_vary_params = """SELECT bu.ID
+						, bu.USER_TYPE
+						, bu.PRIMARY_EMAIL
+						, bu.GIVEN_NAME
+						, bu.FAMILY_NAME
+						, bu.EXTERNAL_UID
+						, bu.SUSPENDED
+						, bu.CHANGE_PASSWORD
+						, bu.GLOBAL_ADDRESSBOOK
+						, bu.OU_PATH
+						, ou.GOOGLE_OUID
 						
-						FROM bixby_user
+						FROM bixby_user AS bu
+						JOIN orgunit AS ou
+							ON bu.ou_path = ou.OU_PATH
 						%s """
 

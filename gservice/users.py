@@ -30,6 +30,7 @@ bixby_user_map = {'bixbyId': 'ID',
 			 'familyName': 'FAMILY_NAME',
 			 'givenName': 'GIVEN_NAME',
 			 'orgUnitPath': 'OU_PATH',
+			 'orgUnitId': 'GOOGLE_OUID',
 			 'changePasswordAtNextLogin': 'CHANGE_PASSWORD',
 			 'externalIds': 'EXTERNAL_UID',
 			 'etag': 'ETAG'}
@@ -43,6 +44,7 @@ json_to_columns_map = {'suspended': 'SUSPENDED',
 			 'familyName': 'FAMILY_NAME',
 			 'givenName': 'GIVEN_NAME',
 			 'orgUnitPath': 'OU_PATH',
+			 'orgUnitId': 'GOOGLE_OUID',
 			 'changePasswordAtNextLogin': 'CHANGE_PASSWORD',
 			 'externalIds': 'EXTERNAL_UID',
 			 'etag': 'ETAG',
@@ -85,6 +87,7 @@ class BaseUser(UserType):
 				 suspended=None,
 				 change_password=None,
 				 ou_path=None,
+				 google_ouid=None,
 				 global_addressbook=None,
 				 creation_time=None,
 				 **kwargs
@@ -118,6 +121,9 @@ class BaseUser(UserType):
 
 			self._set_creation_time(creation_time)
 
+		if google_ouid != None:
+			self._set_orgunit_id(google_ouid)
+
 
 	def _set_primary_email(self, primary_email):
 		self.payload["primaryEmail"] = primary_email
@@ -127,6 +133,12 @@ class BaseUser(UserType):
 			ou_path = self.default_ou_path
 
 		self.payload["orgUnitPath"] = ou_path
+
+	def _set_orgunit_id(self, google_ouid):
+		if google_ouid == None:
+			raise Exception('No google_ouid')
+
+		self.payload['orgUnitId'] = google_ouid
 
 	def _set_name(self, given_name, family_name):
 		self.payload["name"] = {"givenName": given_name,
@@ -283,9 +295,10 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 											str(patch)))
 				patch_result = self.uservice.patch(userKey=self.user_key,
 													 body=patch).execute()
+				log.info('PATCH RESULT: '+json.dumps(patch_result, indent=4))
 				update_object = update_from_json_object(patch_result)
 				update_user_from_dictionary(self.cursor, self.bixby_id, update_object)
-				#time.sleep(1)
+				# time.sleep(1)
 
 			else:
 				log.debug("""No Change Skippng User: %s, %s""" 
@@ -340,7 +353,7 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 
 	def _get_user_object_by_id(self, bixby_id):
 		"""Looks in the bixby_user table and returns a google object"""
-		params = """WHERE id = %s"""
+		params = """WHERE bu.id = %s"""
 		q = queries.get_userinfo_vary_params %params
 		self.cursor.execute(q, (bixby_id,))
 		self.columns = [ i[0] for i in self.cursor.description ]

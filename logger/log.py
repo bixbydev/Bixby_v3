@@ -14,8 +14,8 @@ import logging.handlers
 
 # The old Logging Facility works beautifully!
 log = logging.getLogger(__name__)
-# log.setLevel(logging.DEBUG)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
+# log.setLevel(logging.INFO)
 formatter = logging.Formatter(
 		"""%(asctime)s - [%(levelname)s] - %(filename)s - %(message)s""")
 

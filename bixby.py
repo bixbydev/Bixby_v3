@@ -228,11 +228,12 @@ def current_users(cursor, user_type=None, random=False, limit=None):
 	params = []
 	sql = """SELECT EXTERNAL_UID, USER_TYPE
 					FROM bixby_user
-					WHERE USER_TYPE IS NOT NULL
 					"""
 	if user_type in ('staff', 'student'):
 		sql += '\nWHERE USER_TYPE = %s'
 		params.append(user_type)
+	else:
+		sql += '\nWHERE USER_TYPE IS NOT NULL'
 
 	if random == True:
 		sql += '\nORDER BY RAND()'
@@ -247,7 +248,8 @@ def current_users(cursor, user_type=None, random=False, limit=None):
 	return users
 
 def new_staff_and_students(cursor):
-	cursor.execute(queries.new_staff_and_students)
+	# cursor.execute(queries.new_staff_and_students)
+	cursor.execute(queries.new_staff_only)
 	new_users = cursor.fetchall()
 	return new_users
 
@@ -262,14 +264,16 @@ def main():
 	ds = DirectoryService()
 	us = ds.users()
 
-	refresh_staff_py(oc, mc)
-	refresh_students_py(oc, mc)
+	#refresh_staff_py(oc, mc)
+	#refresh_students_py(oc, mc)
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
 	#sync_all_users_from_google(cursor=mc, user_service=us)
-	users_list = current_users(mc, random=False)
+	log.info('Updating Users')
+	users_list = current_users(mc, user_type='student', random=False)
 	refresh_users(users_list)
-	new_users = new_staff_and_students(mc)
-	refresh_users(new_users)
+	log.info('Adding New Users')
+	#new_users = new_staff_and_students(mc)
+	#refresh_users(new_users)
 
 
 

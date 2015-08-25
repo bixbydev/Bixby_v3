@@ -267,7 +267,8 @@ class BatchGroupMembers(BatchHttpRequest, DirectoryService):
             request_id = self.request_id
         request = (group_key, member_key, 'get')
         self._add_request(request, request_id=request_id)
-        self.batch.add(self.ms.get(groupKey=group_key, memberKey=member_key), callback=self.print_member, request_id=str(request_id))
+        self.batch.add(self.ms.get(groupKey=group_key, memberKey=member_key)
+            , callback=self.print_member, request_id=str(request_id))
 
     def print_member(self, request_id, response, exception):
         print request_id, response, exception
