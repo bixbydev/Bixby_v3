@@ -264,16 +264,16 @@ def main():
 	ds = DirectoryService()
 	us = ds.users()
 
-	#refresh_staff_py(oc, mc)
-	#refresh_students_py(oc, mc)
+	refresh_staff_py(oc, mc)
+	refresh_students_py(oc, mc)
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
 	#sync_all_users_from_google(cursor=mc, user_service=us)
 	log.info('Updating Users')
 	users_list = current_users(mc, user_type='student', random=False)
 	refresh_users(users_list)
 	log.info('Adding New Users')
-	#new_users = new_staff_and_students(mc)
-	#refresh_users(new_users)
+	new_users = new_staff_and_students(mc)
+	refresh_users(new_users)
 
 
 

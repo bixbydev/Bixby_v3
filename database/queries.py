@@ -132,7 +132,7 @@ sql_get_staff_py = """SELECT bu.ID
 							, 0 AS CHANGE_PASSWORD
 							, 1 GLOBAL_ADDRESSBOOK
 							, '/Staff' AS OU_PATH
-							, 'id:03dmca5l3d4ybj8' GOOGLE_OUID
+							-- , 'id:03dmca5l3d4ybj8' GOOGLE_OUID -- Staff OU
 
 							FROM staff_py AS sp
 							LEFT OUTER JOIN bixby_user AS bu
@@ -155,7 +155,7 @@ sql_get_students_py = """SELECT bu.ID
 						, 0 AS CHANGE_PASSWORD
 						, 1 GLOBAL_ADDRESSBOOK
 						, ou.OU_PATH
-						, ou.GOOGLE_OUID
+						-- , ou.GOOGLE_OUID
 
 						FROM students_py AS sp
 						LEFT OUTER JOIN bixby_user AS bu
@@ -261,7 +261,7 @@ get_userinfo_vary_params = """SELECT bu.ID
 						, bu.CHANGE_PASSWORD
 						, bu.GLOBAL_ADDRESSBOOK
 						, bu.OU_PATH
-						, ou.GOOGLE_OUID
+						-- , ou.GOOGLE_OUID
 						
 						FROM bixby_user AS bu
 						JOIN orgunit AS ou

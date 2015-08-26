@@ -15,6 +15,7 @@ from googleapiclient.http import BatchHttpRequest
 
 from config import config
 import database.mysql.base
+from database.mysql.base import CursorWrapper
 from database import queries
 from logger.log import log
 from gservice.directoryservice import DirectoryService, paginate
@@ -238,14 +239,110 @@ class ManageMembers(DirectoryService):
         pass
 
 
+class DBManage(CursorWrapper):
+    def __init__(self, db_table):
+        CursorWrapper.__init__(self)
+        self.db_table = db_table
+
+    def delete(key, value):
+        sql = """DELETE FROM {0} WHERE {1} = %s""".format(self.db_table, key)
+        self.cursor.execute(sql, (group_key,))
+
+
+class BatchBase(BatchHttpRequest, DirectoryService, SchemaBuilder, CursorWrapper):
+    """Base class for Batching group and group member info.
+    This class will eventually be extendable to other services"""
+    def __init__(self, schema):
+        self.__schema = schema
+        DirectoryService.__init__(self)
+        SchemaBuilder.__init__(self, self.__schema)
+        CursorWrapper.__init__(self)
+        self.__init_batch()
+
+
+    def __init_batch(self):
+        self.batch = BatchHttpRequest()
+        self.request_id = 1
+        self.requests = {}
+
+    def __increment_request_id(self):
+        self.request_id += 1
+
+    def _add_request(self, request, request_id):
+        """Add the request to the requests dictionary with an ID that 
+        can be used to lookup details about the request that aren't in the 
+        response from Google."""
+        if self.requests.get(str(request_id)) == None:
+            self.requests[str(self.request_id)] = request
+        else:
+            raise KeyError("Used Request_ID")
+
+        if self.request_id == request_id:
+            self.__increment_request_id()
+
+    def return_request_body(self, request_id, response, exception):
+        print '#' * 10
+        print json.dumps(response, indent=4)
+        #self.construct(**response)
+        #print self.db_payload
+        print '#' * 5
+        print self.requests.get(request_id)
+
+    def execute(self):
+        self.batch.execute(http=self.http)
+        self.__init_batch()
+
+
+class BatchGroups(BatchBase):
+    def __init__(self):
+        BatchBase.__init__(self, group_schema)
+        self.service = self.groups()
+
+    def get_group(self, group_key, request_id=None):
+        if request_id == None:
+            request_id = self.request_id
+        request = { 'groupKey': group_key, 'request_type':'get'  }
+        self._add_request(request, request_id=request_id)
+        self.batch.add(self.service.get(groupKey=group_key),
+                    # callback=self.return_request_body,
+                    callback=self._get_group_info_from_db,
+                    request_id=str(request_id))
+
+    def delete_group(self, group_key, request_id=None):
+        if request_id == None:
+            request_id = self.request_id
+        request = { 'groupKey': group_key, 'request_type':'delete' }
+        self._add_request(request, request_id)
+        self.batch.add(self.service.delete(groupKey=group_key),
+                        callback=self._delete_group_from_db,
+                        request_id=str(request_id))
+
+    def _delete_group_from_db(self, request_id, response, exception):
+        request = self.requests.get(request_id)
+        group_key = request.get('groupKey')
+        sql = """DELETE FROM groups WHERE google_groupid = %s"""
+        if group_key:
+            self.cursor.execute(sql, (group_key,))
+        print str(request)
+
+    def _get_group_info_from_db(self, request_id, response, exception):
+        request = self.requests.get(request_id)
+        group_key = request.get('groupKey')
+        sql = """SELECT * FROM groups WHERE google_groupid = %s"""
+        if group_key:
+            self.cursor.execute(sql, (group_key,))
+            print self.cursor.fetchall()
 
 
 
 
-class BatchGroupMembers(BatchHttpRequest, DirectoryService):
+
+
+class BatchGroupMembers(BatchHttpRequest, DirectoryService, SchemaBuilder):
     def __init__(self):
         self.batch = BatchHttpRequest()
         DirectoryService.__init__(self)
+        SchemaBuilder.__init__(self, member_schema)
         self.ms = self.members()
         self.request_id = 5
         self.requests = {}
@@ -268,10 +365,20 @@ class BatchGroupMembers(BatchHttpRequest, DirectoryService):
         request = (group_key, member_key, 'get')
         self._add_request(request, request_id=request_id)
         self.batch.add(self.ms.get(groupKey=group_key, memberKey=member_key)
-            , callback=self.print_member, request_id=str(request_id))
+                    , callback=self._update_member, request_id=str(request_id))
+
+    def delete_member(self, group_key, member_key, request_id=None):
+        if request_id == None:
+            request_id = self.request_id
+        self._add_request(request)
 
     def print_member(self, request_id, response, exception):
         print request_id, response, exception
+        print self.requests.get(request_id)
+
+    def _update_member(self, request_id, response, exception):
+        self.construct(**response)
+        print self.db_payload
         print self.requests.get(request_id)
 
     def patch_member(self, group_key, member_key, body):
@@ -398,20 +505,28 @@ def refresh_all_group_members(overwrite=False):
 
 
 ### Was all the above a waste of time? ###
+def batch_delete_groups(list_of_groupids):
+    bg = BatchGroups()
+    for groupid in list_of_groupids:
+        bg.delete_group(groupid)
 
-def insert_or_update_group():
-    pass
+    bg.execute()
 
 
+def test_pull_groups():
+    m = CursorWrapper()
+    m.cursor.execute("""SELECT GOOGLE_GROUPID
+                        FROM groups g
+                        WHERE g.GROUP_EMAIL LIKE 'zbhs-%-m-%'""")
 
-
-
-
+    groups = m.cursor.fetchall()
+    return [i[0] for i in groups]
 
 
 
 def main():
     pass
+
 
     
 
@@ -420,4 +535,4 @@ if __name__ == '__main__':
 
 
 
-
+## 02s8eyo1322yzby zbhs-y1-m-albinson-3@berkeley.net
