@@ -19,7 +19,8 @@ from database.mysql.base import CursorWrapper
 from database import queries
 from logger.log import log
 from gservice.directoryservice import DirectoryService, paginate
-from util import un_map, return_datetime, json_date_serial
+import util
+
 
 group_schema = """{
     "title": "Bixby Group Schema",
@@ -67,6 +68,30 @@ group_schema = """{
             "column": "ETAG",
             "description": "The etag of the google groups resource",
             "api": true
+        },
+        "department_id":{
+            "type": "integer",
+            "required": false,
+            "column": "DEPARTMENT_ID",
+            "api": false
+        },
+        "group_type":{
+            "type": "string",
+            "required": false,
+            "column": "GROUP_TYPE",
+            "api": false
+        },
+        "department_id":{
+            "type": "integer",
+            "required": false,
+            "column": "DEPARTMENT_ID",
+            "api": false        
+        },
+        "unique_attribute":{
+            "type": "string",
+            "required": false,
+            "column": "UNIQUE_ATTRIBUTE",
+            "api": false
         }
     }
 }"""
@@ -118,8 +143,6 @@ member_schema = """{
         }
     }
 }"""
-
-
 
 
 class SchemaBuilder(object):
@@ -219,9 +242,6 @@ class SchemaBuilder(object):
             self.__setattr__(arg, value)
 
 
-
-
-
 class ManageGroups(SchemaBuilder, DirectoryService):
     def __init__(self, schema=member_schema):
         SchemaBuilder.__init__(self, schema)
@@ -258,7 +278,6 @@ class BatchBase(BatchHttpRequest, DirectoryService, SchemaBuilder, CursorWrapper
         SchemaBuilder.__init__(self, self.__schema)
         CursorWrapper.__init__(self)
         self.__init_batch()
-
 
     def __init_batch(self):
         self.batch = BatchHttpRequest()
@@ -317,13 +336,44 @@ class BatchGroups(BatchBase):
                         callback=self._delete_group_from_db,
                         request_id=str(request_id))
 
+    def insert_group(email=None, name=None, description=None, 
+        unique_attribute=None, department_id=None, group_type=None, **kwargs):
+        gs = SchemaBuilder(group_schema)
+        group_object = {}
+        if email is None:
+            raise ValueError('email cannot be None')
+        else:
+            group_object['email'] = email
+
+        if name:
+            group_object['name'] = name
+
+        if description:
+            group_object['description'] = description
+
+        if unique_attribute:
+            group_object['unique_attribute'] = unique_attribute
+
+        if department_id:
+            group_object['department_id'] = department_id
+
+        if group_type:
+            group_object['group_type'] = group_type
+
+        self.construct(**group_object)
+        db_payload = self.db_payload #Left here. Adding Request
+        self._add_request(db_payload, request_id)
+
+        
+
     def _delete_group_from_db(self, request_id, response, exception):
         request = self.requests.get(request_id)
         group_key = request.get('groupKey')
         sql = """DELETE FROM groups WHERE google_groupid = %s"""
         if group_key:
             self.cursor.execute(sql, (group_key,))
-        print str(request)
+        #print str(request)
+        log.warn('Permanantly Deleted Group: {0}'.format(request))
 
     def _get_group_info_from_db(self, request_id, response, exception):
         request = self.requests.get(request_id)
@@ -332,10 +382,6 @@ class BatchGroups(BatchBase):
         if group_key:
             self.cursor.execute(sql, (group_key,))
             print self.cursor.fetchall()
-
-
-
-
 
 
 class BatchGroupMembers(BatchHttpRequest, DirectoryService, SchemaBuilder):
@@ -393,22 +439,6 @@ def valid_int(value):
         return value
     else:
         return int(value)
-
-
-def insert_json_payload(cursor, table, payload):
-    places = ', '.join(['%s'] * len(payload))
-    col_names = payload.keys()
-    columns = ', '.join(col_names)
-    values = payload.values()
-    update_cols = ', '.join([i+"=%s" for i in col_names])
-    sql = """INSERT INTO %s (%s) VALUES (%s)
-                ON DUPLICATE KEY 
-                    UPDATE %s\n""" %(table, columns, places, update_cols)
-    log.info('Inserted User to Group: %s' %str(values))
-    values += values
-    #print sql %tuple(values)
-    log.debug((sql) %tuple(values))
-    cursor.execute(sql, values)
 
 
 def populate_group_id(json_file_path):
@@ -505,22 +535,59 @@ def refresh_all_group_members(overwrite=False):
 
 
 ### Was all the above a waste of time? ###
+
 def batch_delete_groups(list_of_groupids):
     bg = BatchGroups()
-    for groupid in list_of_groupids:
-        bg.delete_group(groupid)
-
-    bg.execute()
+    chunked_groups = util.list_chunks(list_of_groupids, 1000)
+    for groups in chunked_groups:
+        time.sleep(5)
+        print 'Chunked'
+        for groupid in groups:
+            # bg.get_group(groupid)
+            bg.delete_group(groupid)
+        log.info('Batch Deleting {0} Groups'.format(len(bg.requests)))
+        time.sleep(1)
+        bg.execute()
 
 
 def test_pull_groups():
     m = CursorWrapper()
     m.cursor.execute("""SELECT GOOGLE_GROUPID
                         FROM groups g
-                        WHERE g.GROUP_EMAIL LIKE 'zbhs-%-m-%'""")
+                        WHERE g.GROUP_EMAIL LIKE 'z%'""")
 
     groups = m.cursor.fetchall()
     return [i[0] for i in groups]
+
+def test_create_group(email=None, name=None, description=None, 
+    unique_attribute=None, department_id=None, group_type=None, **kwargs):
+    gs = SchemaBuilder(group_schema)
+    group_object = {}
+    if email is None:
+        raise ValueError('email cannot be None')
+    else:
+        group_object['email'] = email
+
+    if name:
+        group_object['name'] = name
+
+    if description:
+        group_object['description'] = description
+
+    if unique_attribute:
+        group_object['unique_attribute'] = unique_attribute
+
+    if department_id:
+        group_object['department_id'] = department_id
+
+    if group_type:
+        group_object['group_type'] = group_type
+
+    gs.construct(**group_object)
+
+    db_payload = gs.db_payload
+
+    print util.insert_json_payload('groups', gs.db_payload)
 
 
 
@@ -533,6 +600,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-
-
-## 02s8eyo1322yzby zbhs-y1-m-albinson-3@berkeley.net

@@ -78,10 +78,49 @@ def json_date_serial(obj):
         return serial
 
 
-def chunks(li, n):
-	"""Takes two arguments.
-		a list, li
-		lists n length, n
-	Splits the list into a list of lists with n items."""
-	return [li[i:i+n] for i in range(0, len(li), n)]
+def list_chunks(l, n):
+    """Takes two arguments:
+        l is a list
+        and number, n
+    Splits the list [l] into a list of lists with n items."""
+    assert(type(l)) == list
+    return [l[i:i+n] for i in range(0, len(l), n)]
+
+
+def copy_foreign_table(source_cursor, source_query, destination_cursor, destination_table):
+	"""Selects data in a foreign source database and inserts it into a table in the destination db
+	The columns in the foreign and destination tables must match."""
+	source_cursor.execute(source_query)
+	columns_list = [i[0] for i in source_cursor.description]
+	source_data = source_cursor.fetchall()
+	insert = 'INSERT INTO %s \n(' %destination_table
+	columns = ', '.join(columns_list) +') \n'
+	values = 'VALUES ('+'%s, ' *(len(columns_list) - 1) +'%s)'
+	insert_query = insert + columns + values
+	print "Inserting : %s records" %source_cursor.rowcount
+	destination_cursor.executemany(insert_query, source_data)
+
+
+def insert_json_payload(table, payload, cursor=None):
+	""" Usage
+	cursor: is a cursor object to the db to insert/update
+	table: the name of the database table being updated 
+	payload: a json object/dictionary of key/value pairs. 
+		Keys must be column names
+		Values must be valid data types
+		It's not perfect, but it saves time.
+	"""
+	places = ', '.join(['%s'] * len(payload))
+	col_names = payload.keys()
+	columns = ', '.join(col_names)
+	values = payload.values()
+	update_cols = ', '.join([i+"=%s" for i in col_names])
+	sql = """INSERT INTO %s (%s) VALUES (%s)
+				ON DUPLICATE KEY 
+					UPDATE %s\n""" %(table, columns, places, update_cols)
+	values += values
+	if cursor is None:
+		return sql, values
+	else:
+		cursor.execute(sql, values)
 
