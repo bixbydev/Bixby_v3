@@ -80,8 +80,8 @@ def paginate(service_object, **kwargs):
 	"""This is going to be darn useful. I wonder if this is where a decorator 
 		would be handy?"""
 	params = {'customer': 'my_customer',
-			'domain': config.PRIMARY_DOMAIN,
-			 'viewType': 'admin_view'}
+				'domain': config.PRIMARY_DOMAIN,
+				'viewType': 'admin_view'}
 	request = service_object.list(**kwargs)
 	all_pages = []
 	pages = 0
@@ -126,6 +126,7 @@ def refresh_all_google_users(cursor=None, user_service=None):
 		insert_json_payload(cursor, 'bixby_user', db_payload)
 
 
+
 def insert_json_payload(cursor, table, payload):
 	""" Usage
 	cursor: is a cursor object to the db to insert/update
@@ -150,11 +151,6 @@ def insert_json_payload(cursor, table, payload):
 		print sql %tuple(values)
 	else:
 		cursor.execute(sql, values)
-
-
-
-
-
 
 
 
@@ -198,7 +194,6 @@ def sync_all_users_from_google(cursor=None, user_service=None):
 						user_service.patch(userKey=user_key, body=patch).execute()
 			else:
 				log.debug('User Skipped: %s' %primary_email)
-
 
 
 

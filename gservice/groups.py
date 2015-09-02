@@ -49,48 +49,42 @@ group_schema = """{
         "email": {
             "type": "string",
             "required": true,
-            "column": "GROUP_EMAIL",
+            "column": "group_email",
             "api": true
         },
         "id": {
             "type": "string",
             "required": true,
-            "column": "GOOGLE_GROUPID",
+            "column": "google_groupid",
             "api": true
         },
         "description": {
             "type": "string",
-            "column": "DESCRIPTION",
+            "column": "description",
             "api": true
         },
         "etag": {
             "type": "string",
-            "column": "ETAG",
+            "column": "etag",
             "description": "The etag of the google groups resource",
             "api": true
         },
         "department_id":{
             "type": "integer",
             "required": false,
-            "column": "DEPARTMENT_ID",
+            "column": "department_id",
             "api": false
         },
         "group_type":{
             "type": "string",
             "required": false,
-            "column": "GROUP_TYPE",
+            "column": "group_type",
             "api": false
-        },
-        "department_id":{
-            "type": "integer",
-            "required": false,
-            "column": "DEPARTMENT_ID",
-            "api": false        
         },
         "unique_attribute":{
             "type": "string",
             "required": false,
-            "column": "UNIQUE_ATTRIBUTE",
+            "column": "unique_attribute",
             "api": false
         }
     }
@@ -106,14 +100,14 @@ member_schema = """{
         "role": {
             "type": "string",
             "required": true,
-            "column": "ROLE",
+            "column": "role",
             "enum": ["MEMBER", "OWNER", "MANAGER"],
             "api": true
         },
         "type": {
             "type": "string",
             "required": false,
-            "column": "TYPE",
+            "column": "type",
             "enum": ["USER","GROUP"],
             "api": true
         },
@@ -126,12 +120,12 @@ member_schema = """{
             "description": "The google ID of the member",
             "type": "string",
             "required": true,
-            "column": "GOOGLE_USERID",
+            "column": "google_userid",
             "api": true
         },
         "etag": {
             "type": "string",
-            "column": "ETAG",
+            "column": "etag",
             "description": "The etag of the google groups resource",
             "api": true
         },
@@ -242,33 +236,6 @@ class SchemaBuilder(object):
             self.__setattr__(arg, value)
 
 
-class ManageGroups(SchemaBuilder, DirectoryService):
-    def __init__(self, schema=member_schema):
-        SchemaBuilder.__init__(self, schema)
-        DirectoryService.__init__(self)
-        self.gs = self.groups()
-        self.ms = self.members()
-
-
-class ManageMembers(DirectoryService):
-    def __init__(self):
-        DirectoryService.__init__(self)
-        self.ms = self.members()
-
-    def add_member(self, group_key, body):
-        pass
-
-
-class DBManage(CursorWrapper):
-    def __init__(self, db_table):
-        CursorWrapper.__init__(self)
-        self.db_table = db_table
-
-    def delete(key, value):
-        sql = """DELETE FROM {0} WHERE {1} = %s""".format(self.db_table, key)
-        self.cursor.execute(sql, (group_key,))
-
-
 class BatchBase(BatchHttpRequest, DirectoryService, SchemaBuilder, CursorWrapper):
     """Base class for Batching group and group member info.
     This class will eventually be extendable to other services"""
@@ -308,8 +275,74 @@ class BatchBase(BatchHttpRequest, DirectoryService, SchemaBuilder, CursorWrapper
         print self.requests.get(request_id)
 
     def execute(self):
+        #print self.requests
         self.batch.execute(http=self.http)
         self.__init_batch()
+
+
+class BatchMembers(BatchBase):
+    def __init__(self):
+        BatchBase.__init__(self, member_schema)
+        self.service = self.members()
+
+    def insert_member(self, group_key, member_key, member_type, request_id=None):
+        if request_id == None:
+            request_id = self.request_id
+        request = {'groupKey': group_key
+                    , 'request_type': 'insert_member'
+                    , 'memberKey': member_key}
+        self._add_request(request, request_id=request_id)
+        request_body = { 'id': member_key, 'role': member_type }
+        service_call = self.service.insert(groupKey=group_key, body=request_body)
+        self.batch.add(service_call, callback=self._insert_member_in_db,
+                        request_id=str(request_id)) 
+
+    def _insert_member_in_db(self, request_id, response, exception):
+        request = self.requests.get(request_id)
+        group_key = request.get('groupKey')
+        member_key = request.get('memberKey')
+
+        if exception is not None:
+            if exception.resp.status == 409: #Member Exists
+                time.sleep(0.2)
+                response = self.service.get(groupKey=group_key, 
+                                            memberKey=member_key).execute()
+            log.error(exception)
+
+        if response:
+            self.construct(**response)
+        #from the global function below
+        insert_member(self.cursor, self.db_table, group_key, self.db_payload)
+
+    def delete_member(self, group_key, member_key, request_id=None):
+        if request_id == None:
+            request_id = self.request_id
+        request = {'groupKey': group_key
+                    , 'request_type': 'delete_member'
+                    , 'memberKey': member_key}
+        self._add_request(request, request_id=request_id)
+        service_call = self.service.delete(groupKey=group_key,
+                                            memberKey=member_key)
+        self.batch.add(service_call, callback=self._delete_group_member, 
+                        request_id=str(request_id))
+
+    def _delete_group_member(self, request_id, response, exception):
+        request = self.requests.get(request_id)
+        group_key = request.get('groupKey')
+        member_key = request.get('memberKey')
+        sql = """DELETE FROM group_member 
+                    WHERE google_groupid = %s
+                    AND google_userid = %s"""
+        if exception is not None:
+            log.error(exception)
+            time.sleep(2)
+        else:
+            logstring = "Removed Member: {0} from Group: {1}"
+            log.info(logstring.format(member_key, group_key))
+            self.cursor.execute(sql, (group_key, member_key))
+
+
+
 
 
 class BatchGroups(BatchBase):
@@ -330,16 +363,18 @@ class BatchGroups(BatchBase):
     def delete_group(self, group_key, request_id=None):
         if request_id == None:
             request_id = self.request_id
-        request = { 'groupKey': group_key, 'request_type':'delete' }
+        request = { 'groupKey' : group_key, 'request_type' : 'delete' }
         self._add_request(request, request_id)
         self.batch.add(self.service.delete(groupKey=group_key),
                         callback=self._delete_group_from_db,
                         request_id=str(request_id))
 
-    def insert_group(email=None, name=None, description=None, 
-        unique_attribute=None, department_id=None, group_type=None, **kwargs):
-        gs = SchemaBuilder(group_schema)
+    def insert_group(self, email=None, name=None, description=None, 
+                    unique_attribute=None, department_id=None,
+                    group_type=None):
+        request_id = self.request_id
         group_object = {}
+        print email
         if email is None:
             raise ValueError('email cannot be None')
         else:
@@ -361,19 +396,62 @@ class BatchGroups(BatchBase):
             group_object['group_type'] = group_type
 
         self.construct(**group_object)
-        db_payload = self.db_payload #Left here. Adding Request
-        self._add_request(db_payload, request_id)
+        #db_payload = self.db_payload 
+        print 'Constructed: ', self.db_payload
+        request = {'db_payload' : self.db_payload, 
+                   'request_type' : 'insert' }
+        self._add_request(request, request_id)
+        self.batch.add(self.service.insert(body=self.api_payload),
+                        callback=self._insert_group_in_db,
+                        request_id=str(request_id))
 
-        
+
+    def _insert_group_in_db(self, request_id, response, exception):
+        print request_id
+        request = self.requests.get(request_id)
+        print '--------------------'
+        print request 
+        db_payload = request.get('db_payload')
+        print '################# %s ##################' %db_payload.get('group_email')
+        payload = {}
+
+        if exception is not None:
+            if exception.resp.status == 409: #Entity Exists
+                log.error('Could not create group. Entity Exists %s' %db_payload)
+                log.warn('This is normal. Likely two classes this period')
+                time.sleep(0.5)
+                existing_group = self.service.get(groupKey=db_payload.get('group_email')).execute()
+                payload.update(db_payload)
+                payload.update(existing_group)
+                self.construct(**payload)
+                util.insert_json_payload('groups', self.db_payload, self.cursor)
+            log.critical(exception)
+
+        elif response is None:
+            log.critical('No response from google: %s' %db_payload)
+            
+        else:
+            # The orginal db_payload is combined with the response for storage in db
+            payload.update(db_payload)
+            payload.update(response)
+            print payload
+            self.construct(**payload)
+            print self.db_payload
+            util.insert_json_payload('groups', self.db_payload, self.cursor)
+
 
     def _delete_group_from_db(self, request_id, response, exception):
-        request = self.requests.get(request_id)
-        group_key = request.get('groupKey')
-        sql = """DELETE FROM groups WHERE google_groupid = %s"""
-        if group_key:
-            self.cursor.execute(sql, (group_key,))
-        #print str(request)
-        log.warn('Permanantly Deleted Group: {0}'.format(request))
+        if exception is not None:
+            log.error(exception)
+        else:
+            request = self.requests.get(request_id)
+            group_key = request.get('groupKey')
+            sql = """DELETE FROM groups WHERE google_groupid = %s"""
+            if group_key:
+                self.cursor.execute(sql, (group_key,))
+            #print str(request)
+            log.warn('Permanantly Deleted Group: {0}'.format(request))
+
 
     def _get_group_info_from_db(self, request_id, response, exception):
         request = self.requests.get(request_id)
@@ -494,7 +572,9 @@ def populate_group_members(cursor, member_service, google_groupid):
 
 def insert_member(cursor, table, google_groupid, db_payload):
     """This was used for the initial sync of members.
-    This funciton is replaced by insert_group_member()"""
+    This funciton is replaced by insert_group_member()
+    It is also unknown what happened to insert_group_member()
+    """
     places = '%s, '+', '.join(['%s'] * len(db_payload))
     db_keys = db_payload.keys()
     db_keys.insert(0, 'GOOGLE_GROUPID')
@@ -506,7 +586,7 @@ def insert_member(cursor, table, google_groupid, db_payload):
     sql = """INSERT INTO %s (%s) VALUES (%s)
                 ON DUPLICATE KEY 
                     UPDATE %s\n""" %(table, columns, places, update_cols)
-    log.debug('Inserted User Into Group: %s' %str(values))
+    log.info('Inserted User Into Group: %s' %str(values))
     values += values
     # log.debug((sql) %tuple(values))
     cursor.execute(sql, values)
@@ -538,7 +618,7 @@ def refresh_all_group_members(overwrite=False):
 
 def batch_delete_groups(list_of_groupids):
     bg = BatchGroups()
-    chunked_groups = util.list_chunks(list_of_groupids, 1000)
+    chunked_groups = util.list_chunks(list_of_groupids, 200)
     for groups in chunked_groups:
         time.sleep(5)
         print 'Chunked'
@@ -547,7 +627,7 @@ def batch_delete_groups(list_of_groupids):
             bg.delete_group(groupid)
         log.info('Batch Deleting {0} Groups'.format(len(bg.requests)))
         time.sleep(1)
-        bg.execute()
+        bg.execute() # Delete the Extra Groups
 
 
 def test_pull_groups():
@@ -558,6 +638,7 @@ def test_pull_groups():
 
     groups = m.cursor.fetchall()
     return [i[0] for i in groups]
+
 
 def test_create_group(email=None, name=None, description=None, 
     unique_attribute=None, department_id=None, group_type=None, **kwargs):
