@@ -534,6 +534,7 @@ def unique_username(cursor, external_uid, user_type):
 	# Check for Username Changes/Manual Username
 	new_uname = None
 	try_uname = None
+	bad_overide = False
 	ut = UserType(user_type)
 	domain = ut.domain 
 	if ut.user_type == 'student':
@@ -560,7 +561,8 @@ def unique_username(cursor, external_uid, user_type):
 	user_exists = primary_email_exists(cursor, new_uname, domain)
 
 	if user_exists and bad_overide == True:
-		raise BadUserName('The override username exists')
+		raise BadUserName('The override username exists external_uid: %s %s', 
+							external_uid, user_type)
 	
 	# Try creating a username with the middle initial
 	elif user_exists and middle_name != None:

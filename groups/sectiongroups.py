@@ -105,6 +105,7 @@ LEFT OUTER JOIN group_member AS gm
         AND gm.ROLE = 'OWNER'
 
 WHERE gm.GOOGLE_GROUPID IS NULL
+	AND bu.GOOGLE_ID IS NOT NULL
 -- LIMIT 40
 """
 
@@ -228,8 +229,9 @@ def main():
 	refresh_section_groups_data()
 	insert_new_section_groups()
 	insert_new_group_members(new_group_owners)
-	insert_new_group_members(new_student_group_members)
 	delete_group_members(stale_group_owners)
+	insert_new_group_members(new_student_group_members)
+	
 
 if __name__ == '__main__':
 	main()

@@ -243,8 +243,8 @@ def current_users(cursor, user_type=None, random=False, limit=None):
 	return users
 
 def new_staff_and_students(cursor):
-	# cursor.execute(queries.new_staff_and_students)
-	cursor.execute(queries.new_staff_only)
+	cursor.execute(queries.new_staff_and_students)
+	# cursor.execute(queries.new_staff_only)
 	new_users = cursor.fetchall()
 	return new_users
 
