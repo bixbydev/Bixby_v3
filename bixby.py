@@ -26,6 +26,8 @@ from database import queries
 import database.mysql.base
 import database.oracle.base
 from config import config
+import groups.schoolconferences
+import groups.sectiongroups
 
 
 log.info('Starting Bixby')
@@ -269,6 +271,12 @@ def main():
 	log.info('Adding New Users')
 	new_users = new_staff_and_students(mc)
 	refresh_users(new_users)
+
+	# Run the School Conferences
+	#groups.schoolconferences.main()
+
+	# Run the Section Groups
+	#groups.sectiongroups.main()
 
 
 

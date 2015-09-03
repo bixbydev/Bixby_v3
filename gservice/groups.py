@@ -312,7 +312,8 @@ class BatchMembers(BatchBase):
         if response:
             self.construct(**response)
         #from the global function below
-        insert_member(self.cursor, self.db_table, group_key, self.db_payload)
+        log.info('Added Member to Group: %s' %self.db_payload)
+        insert_group_member(self.cursor, self.db_table, group_key, self.db_payload)
 
     def delete_member(self, group_key, member_key, request_id=None):
         if request_id == None:
@@ -340,8 +341,6 @@ class BatchMembers(BatchBase):
             logstring = "Removed Member: {0} from Group: {1}"
             log.info(logstring.format(member_key, group_key))
             self.cursor.execute(sql, (group_key, member_key))
-
-
 
 
 
@@ -570,10 +569,61 @@ def populate_group_members(cursor, member_service, google_groupid):
         insert_member(cursor, gm.db_table, google_groupid, gm.db_payload)
 
 
-def insert_member(cursor, table, google_groupid, db_payload):
+def insert_new_groups(new_groups_query):
+    """Takes an SQL Query with (group email, group name, description, unique_attribute
+            department_id, group_type)"""
+    bg = BatchGroups()
+    bg.cursor.execute(new_groups_query)
+    new_groups = bg.cursor.fetchall()
+    fields = [i[0] for i in bg.cursor.description]
+    chunked_groups = util.list_chunks(list(new_groups), 20)
+    for chunk in chunked_groups:
+        for group in chunk:
+            bg.insert_group(email=group[0], 
+                            name=group[1], 
+                            description=group[2], 
+                            unique_attribute=group[3], 
+                            department_id=group[4],
+                            group_type=group[5] )
+        time.sleep(3)
+        bg.execute()
+
+
+def insert_new_group_members(members_query):
+    """Takes an SQL Query with (groupKey, memberKey, role)"""
+    bg = BatchMembers()
+    bg.cursor.execute(members_query)
+    new_members = bg.cursor.fetchall()
+    fields = [i[0] for i in bg.cursor.description]
+    chunked_members = util.list_chunks(list(new_members), 20)
+    for chunk in chunked_members:
+        for mem in chunk:
+            print mem
+            bg.insert_member(mem[0], mem[1], mem[2])
+        time.sleep(2)
+        bg.execute()
+
+
+def delete_group_members(members_query):
+    """Takes an SQL Query with (groupKey, memberKey)"""
+    bg = BatchMembers()
+    bg.cursor.execute(members_query)
+    new_members = bg.cursor.fetchall()
+    fields = [i[0] for i in bg.cursor.description]
+    chunked_members = util.list_chunks(list(new_members), 20)
+    for chunk in chunked_members:
+        for mem in chunk:
+            print mem
+            bg.delete_member(mem[0], mem[1])
+        time.sleep(2)
+        bg.execute()
+
+
+def insert_group_member(cursor, table, google_groupid, db_payload):
     """This was used for the initial sync of members.
     This funciton is replaced by insert_group_member()
     It is also unknown what happened to insert_group_member()
+    This will now become insert_group_member()
     """
     places = '%s, '+', '.join(['%s'] * len(db_payload))
     db_keys = db_payload.keys()
@@ -586,9 +636,8 @@ def insert_member(cursor, table, google_groupid, db_payload):
     sql = """INSERT INTO %s (%s) VALUES (%s)
                 ON DUPLICATE KEY 
                     UPDATE %s\n""" %(table, columns, places, update_cols)
-    log.info('Inserted User Into Group: %s' %str(values))
     values += values
-    # log.debug((sql) %tuple(values))
+    #log.debug((sql) %tuple(values))
     cursor.execute(sql, values)
 
 

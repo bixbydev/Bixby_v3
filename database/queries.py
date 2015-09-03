@@ -34,30 +34,30 @@ WHERE t.staffstatus IS NOT NULL
 	"""
 
 
-get_students_from_sis = """SELECT id EXTERNAL_UID
-						, SCHOOLID
-						, STUDENT_NUMBER
-						, FIRST_NAME GIVEN_NAME
-						, LAST_NAME FAMILY_NAME
-						, MIDDLE_NAME
-						, DOB
-						, CASE WHEN UPPER(gender) NOT IN ('M','F') THEN 'U' ELSE UPPER(gender) END GENDER
-						, GRADE_LEVEL
-						, HOME_ROOM
-						, ps_customfields.getcf('students',id,'Area') AREA
-						, TO_DATE(entrydate) ENTRYDATE
-						, TO_DATE(exitdate) EXITDATE
-						, CASE WHEN enroll_status = 0 THEN 0 ELSE 2 END EXTERNAL_USERSTATUS
-						, CASE WHEN ps_customfields.getcf('students',id,'BUSD_Gmail_Suspended')=1 THEN 1
+get_students_from_sis = """SELECT s.id EXTERNAL_UID
+						, s.SCHOOLID
+						, s.STUDENT_NUMBER
+						, s.FIRST_NAME GIVEN_NAME
+						, s.LAST_NAME FAMILY_NAME
+						, s.MIDDLE_NAME
+						, s.DOB
+						, CASE WHEN UPPER(s.gender) NOT IN ('M','F') THEN 'U' ELSE UPPER(s.gender) END GENDER
+						, s.GRADE_LEVEL
+						, s.HOME_ROOM
+						, ps_customfields.getcf('students',s.id,'Area') AREA
+						, TO_DATE(s.entrydate) ENTRYDATE
+						, TO_DATE(s.exitdate) EXITDATE
+						, CASE WHEN s.enroll_status = 0 THEN 0 ELSE 2 END EXTERNAL_USERSTATUS
+						, CASE WHEN ps_customfields.getcf('students',s.id,'BUSD_Gmail_Suspended')=1 THEN 1
 							ELSE 0 END SUSPEND_ACCOUNT
 						      -- The Student Web ID and Parent Web_ID are here for other purposes maybe I will put that into a custom table
-						, NULL EMAIL_OVERRIDE -- Pull from field BUSD_EMAIL_OVERRIDE
-						, STUDENT_WEB_ID
-						, WEB_ID PARENT_WEB_ID
-						FROM students
-						-- WHERE id BETWEEN 5000 AND 5200 
-						-- AND grade_level >= 3
-						ORDER BY id
+						, ps_customfields.getcf('students',s.id,'BUSD_Email_Override') EMAIL_OVERRIDE -- Pull from field BUSD_EMAIL_OVERRIDE
+						, s.STUDENT_WEB_ID
+						, s.WEB_ID PARENT_WEB_ID
+						FROM students s
+						-- WHERE s.id BETWEEN 5000 AND 5200 
+						-- AND s.grade_level >= 3
+						ORDER BY s.id
 						"""
 
 

@@ -7,6 +7,8 @@
 # Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
 #=====================================================================#
 
+import os
+import csv
 import base64
 import getpass
 from datetime import datetime
@@ -123,4 +125,21 @@ def insert_json_payload(table, payload, cursor=None):
 		return sql, values
 	else:
 		cursor.execute(sql, values)
+
+
+def csv_from_sql(query, file_output_path, file_name, cursor, header=True):
+	full_file_path = os.path.join(file_output_path, file_name)
+	f = open(full_file_path, 'wb')
+	#log.info('Querying DB')
+	cursor.execute(query)
+	queryresults = cursor.fetchall()
+	#log.info('Writing file: %s' % file_name)
+	csvwriter = csv.writer(f, delimiter=',', quotechar='"',
+							quoting=csv.QUOTE_MINIMAL)
+	if header:
+		csvwriter.writerow([i[0] for i in cursor.description])
+	for row in queryresults:
+		csvwriter.writerow(row)
+	#print row
+	f.close()
 

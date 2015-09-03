@@ -7,12 +7,14 @@
 # Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
 #=====================================================================#
 
-import time
+# import time
 
 import util
 import database.mysql.base
 import database.oracle.base
-from gservice.groups import BatchGroups, BatchMembers
+# from gservice.groups import BatchGroups, BatchMembers
+
+import gservice.groups
 
 
 get_sections_from_ps = """SELECT sec.id sectionid
@@ -175,62 +177,12 @@ def refresh_section_groups_data():
 	ocon.close()
 
 
-def insert_new_section_groups():
-	bg = BatchGroups()
-	bg.cursor.execute(new_section_groups)
-	new_groups = bg.cursor.fetchall()
-	fields = [i[0] for i in bg.cursor.description]
-	chunked_groups = util.list_chunks(list(new_groups), 20)
-	for chunk in chunked_groups:
-		for group in chunk:
-			# This stuff can be removed
-			#group_object = dict(zip(fields, group))
-			print '+' * 20
-			print group
-			bg.insert_group(email=group[0], 
-							name=group[1], 
-							description=group[2], 
-							unique_attribute=group[3], 
-							department_id=group[4],
-                    		group_type=group[5] )
-		time.sleep(3)
-		bg.execute()
-
-
-def insert_new_group_members(members_query):
-	bg = BatchMembers()
-	bg.cursor.execute(members_query)
-	new_members = bg.cursor.fetchall()
-	fields = [i[0] for i in bg.cursor.description]
-	chunked_members = util.list_chunks(list(new_members), 20)
-	for chunk in chunked_members:
-		for mem in chunk:
-			print mem
-			bg.insert_member(mem[0], mem[1], mem[2])
-		time.sleep(2)
-		bg.execute()
-
-
-def delete_group_members(members_query):
-	bg = BatchMembers()
-	bg.cursor.execute(members_query)
-	new_members = bg.cursor.fetchall()
-	fields = [i[0] for i in bg.cursor.description]
-	chunked_members = util.list_chunks(list(new_members), 20)
-	for chunk in chunked_members:
-		for mem in chunk:
-			print mem
-			bg.delete_member(mem[0], mem[1])
-		time.sleep(2)
-		bg.execute()
-
-
 def main():
-	refresh_section_groups_data()
-	insert_new_section_groups()
-	insert_new_group_members(new_group_owners)
-	delete_group_members(stale_group_owners)
-	insert_new_group_members(new_student_group_members)
+	#refresh_section_groups_data()
+	gservice.groups.insert_new_groups(new_section_groups)
+	gservice.groups.insert_new_group_members(new_group_owners)
+	gservice.groups.delete_group_members(stale_group_owners)
+	#insert_new_group_members(new_student_group_members)
 	
 
 if __name__ == '__main__':
