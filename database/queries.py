@@ -124,7 +124,7 @@ sql_get_bixby_user = """SELECT ID
 sql_get_staff_py = """SELECT bu.ID
 							, 'staff' AS USER_TYPE
 							, COALESCE(sp.BUSD_EMAIL_ADDRESS
-										, bu.PRIMARY_EMAIL) PRIMARY_EMAIL
+										, bu.PRIMARY_EMAIL) AS PRIMARY_EMAIL
 							, SP.GIVEN_NAME
 							, SP.FAMILY_NAME
 							, sp.EXTERNAL_UID
@@ -147,7 +147,8 @@ sql_get_staff_py = """SELECT bu.ID
 
 sql_get_students_py = """SELECT bu.ID
 						, 'student' AS USER_TYPE
-						, bu.PRIMARY_EMAIL
+						, COALESCE(sp.EMAIL_OVERRIDE
+									, bu.PRIMARY_EMAIL) AS PRIMARY_EMAIL
 						, sp.GIVEN_NAME
 						, sp.FAMILY_NAME
 						, sp.EXTERNAL_UID
