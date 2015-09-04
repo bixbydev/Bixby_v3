@@ -101,6 +101,14 @@ if not ORA_PASSWORD:
 
 ORA_CONNECTION_STRING = None
 
+# Installation Specific Settings
+# Update this section to from custom import *
+PS_PASSWORDS_HOSTNAME = config.get('PsPasswords', 'host')
+PS_PASSWORDS_USER = config.get('PsPasswords', 'user')
+PS_PASSWORDS_PASSWORD = config.get('PsPasswords', 'password')
+PS_PASSWORDS_REMOTE_PATH = config.get('PsPasswords', 'remote_path')
+
+
 
 def main():
 	pass

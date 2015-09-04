@@ -8,6 +8,9 @@
 #=====================================================================#
 
 import os
+import sys
+import ssh
+import traceback
 import csv
 import base64
 import getpass
@@ -142,4 +145,40 @@ def csv_from_sql(query, file_output_path, file_name, cursor, header=True):
 		csvwriter.writerow(row)
 	#print row
 	f.close()
+
+
+def sftp_file(username, password, hostname, local_path, remote_path, file_name):
+	host_key_type = None 
+	host_key = None
+
+	try:
+		host_keys = ssh.util.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
+	except IOError:
+		try:
+			# try ~/ssh/ too, because windows can't have a folder named ~/.ssh/
+			host_keys = ssh.util.load_host_keys(os.path.expanduser('~/ssh/known_hosts'))
+		except IOError:
+			print "ERROR: Unable to open host keys file"
+			host_keys={}
+
+	if host_keys.has_key(hostname):
+		host_key_type = host_keys[hostname].keys()[0]
+		host_key = host_keys[hostname][host_key_type]
+		print 'Using host key of type %s' % host_key_type
+
+	try:
+		transport = ssh.Transport((hostname))
+		transport.connect(username=username, password=password, hostkey=host_key)
+		sftp = ssh.SFTPClient.from_transport(transport)
+		sftp.chdir(remote_path)
+		sftp.put(local_path, file_name)
+		transport.close()
+	except Exception, e:
+		print "Caught Exception: %s: %s" %(e.__class__, e)
+		traceback.print_exc()
+		try:
+			transport.close()
+		except:
+			pass
+		sys.exit(1)
 
