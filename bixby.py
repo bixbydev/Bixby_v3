@@ -28,6 +28,7 @@ import database.oracle.base
 from config import config
 import groups.schoolconferences
 import groups.sectiongroups
+import gorups.yoggroups
 
 
 log.info('Starting Bixby')
@@ -273,10 +274,13 @@ def main():
 	refresh_users(new_users)
 
 	# Run the School Conferences
-	#groups.schoolconferences.main()
+	groups.schoolconferences.main()
 
 	# Run the Section Groups
-	#groups.sectiongroups.main()
+	groups.sectiongroups.main()
+	
+	# Run the Year of Graduation (YOG) Groups
+	groups.yoggroups.main()
 
 
 
