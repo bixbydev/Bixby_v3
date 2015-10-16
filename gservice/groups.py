@@ -343,7 +343,6 @@ class BatchMembers(BatchBase):
             self.cursor.execute(sql, (group_key, member_key))
 
 
-
 class BatchGroups(BatchBase):
     def __init__(self):
         BatchBase.__init__(self, group_schema)

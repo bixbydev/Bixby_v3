@@ -128,6 +128,7 @@ LEFT OUTER JOIN group_member AS gm
 	ON g.GOOGLE_GROUPID = gm.GOOGLE_GROUPID
 		AND bu.GOOGLE_ID = gm.GOOGLE_USERID
 WHERE gm.GOOGLE_GROUPID IS NULL
+	AND curdate() BETWEEN ssp.dateenrolled AND ssp.dateleft
 -- LIMIT 40
 """
 
@@ -157,6 +158,29 @@ LEFT OUTER JOIN sections_py AS sp
 WHERE sp.group_email IS NULL
 """
 
+stale_group_members = """SELECT gm.GOOGLE_GROUPID
+-- THIS QUERY DOES NOT WORK YET 
+-- THIS QUERY DOES NOT WORK YET 
+-- THIS QUERY DOES NOT WORK YET 
+-- THIS QUERY DOES NOT WORK YET It may remove users from groups with more than one section
+, gm.GOOGLE_USERID
+, bu.PRIMARY_EMAIL
+, g.*
+FROM group_member AS gm
+JOIN groups AS g
+	ON gm.GOOGLE_GROUPID = g.GOOGLE_GROUPID
+    AND g.GROUP_TYPE = 'StudentSection'
+    AND gm.ROLE = 'MEMBER'
+JOIN bixby_user AS bu
+	ON gm.GOOGLE_USERID = bu.GOOGLE_ID
+LEFT OUTER JOIN studentschedule_py AS sp
+	ON g.UNIQUE_ATTRIBUTE = sp.SECTIONID 
+		AND bu.EXTERNAL_UID = sp.studentid
+        AND now() BETWEEN sp.dateenrolled AND sp.dateleft
+WHERE sp.studentid IS NULL
+-- THIS QUERY DOES NOT WORK YET 
+"""
+
 
 def refresh_section_groups_data():
 	database.mysql.base.backup_mysql()
@@ -178,11 +202,11 @@ def refresh_section_groups_data():
 
 
 def main():
-	#refresh_section_groups_data()
+	refresh_section_groups_data()
 	gservice.groups.insert_new_groups(new_section_groups)
 	gservice.groups.insert_new_group_members(new_group_owners)
 	gservice.groups.delete_group_members(stale_group_owners)
-	#insert_new_group_members(new_student_group_members)
+	gservice.groups.insert_new_group_members(new_student_group_members)
 	
 
 if __name__ == '__main__':
