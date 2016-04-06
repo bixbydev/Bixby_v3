@@ -73,7 +73,7 @@ get_cc_schedule_from_ps = """SELECT id ps_id
 , dateenrolled
 , dateleft
 FROM cc
-WHERE ABS(termid) BETWEEN 2500 AND 2501
+WHERE ABS(termid) BETWEEN 2500 AND 2510
 """
 
 new_section_groups = """SELECT sp.GROUP_EMAIL

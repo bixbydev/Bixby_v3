@@ -28,7 +28,7 @@ import database.oracle.base
 from config import config
 import groups.schoolconferences
 import groups.sectiongroups
-import gorups.yoggroups
+import groups.yoggroups
 
 
 log.info('Starting Bixby')

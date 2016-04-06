@@ -665,6 +665,7 @@ def refresh_all_group_members(overwrite=False):
 ### Was all the above a waste of time? ###
 
 def batch_delete_groups(list_of_groupids):
+    """Takes a list of group keys, they must be the Google Unique Group ID"""
     bg = BatchGroups()
     chunked_groups = util.list_chunks(list_of_groupids, 200)
     for groups in chunked_groups:
