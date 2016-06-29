@@ -94,6 +94,8 @@ class DirectoryService(object):
 	def members(self):
 		return self.directory_service.members()
 
+	def chromeosdevices(self):
+		return self.directory_service.chromeosdevices()
 
 
 def paginate(service_object, method='users', **kwargs):
