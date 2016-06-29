@@ -80,8 +80,7 @@ def multidb_bulk_insert(sourcecursor, destinationcursor, sourcequery, destinatio
 
 
 def paginate(service_object, **kwargs):
-	"""This is going to be darn useful. I wonder if this is where a decorator 
-		would be handy?"""
+	"""This function is redundant. Should be referenced from directoryservice"""
 	params = {'customer': 'my_customer',
 				'domain': config.PRIMARY_DOMAIN,
 				'viewType': 'admin_view'}
