@@ -372,12 +372,14 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 		if user_type == 'staff':
 			q = queries.get_new_staff_py
 			password = 'BerkeleyStaff'+config.YEAR
+			change_password = True
 
 		elif user_type == 'student':
 			q =  queries.get_new_student_py
 			self.cursor.execute(queries.get_student_number, (external_uid,))
 			password = self.cursor.fetchone()[0]
 			password = 'Berkeley'+str(password)
+			change_password = False
 
 		else:
 			q = None
@@ -394,6 +396,7 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 			self.sp = BaseUser(**d)
 			# Add the new password
 			self.sp.payload['password'] = password
+			self.sp.payload['change_password'] = change_password
 			return self.sp.payload
 		else:
 			# This is so wrong. There are a ton of users who will keep triggering
@@ -525,8 +528,6 @@ def primary_email_exists(cursor, primary_email, domain):
 		return True
 	else:
 		return False
-
-
 
 
 # Generate an unique username within the domain!

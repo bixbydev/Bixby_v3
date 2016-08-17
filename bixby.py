@@ -12,6 +12,8 @@
 # The JSON request https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#create_user
 # This script https://developers.google.com/admin-sdk/directory/v1/quickstart/quickstart-python#step_2_install_the_google_client_library
 
+#Thanks Apple! Fix on my mac...
+# http://stackoverflow.com/questions/31343299/mysql-improperly-configured-reason-unsafe-use-of-relative-path
 
 import json
 import csv
