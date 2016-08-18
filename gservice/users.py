@@ -396,7 +396,8 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 			self.sp = BaseUser(**d)
 			# Add the new password
 			self.sp.payload['password'] = password
-			self.sp.payload['change_password'] = change_password
+			if change_password:
+				self.sp._change_password(True)
 			return self.sp.payload
 		else:
 			# This is so wrong. There are a ton of users who will keep triggering
