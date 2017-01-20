@@ -22,7 +22,7 @@ from apiclient.discovery import build
 # from apiclient.discovery import build
 from oauth2client.file import Storage
 from oauth2client.client import OAuth2WebServerFlow
-from oauth2client.tools import run
+# from oauth2client.tools import run # Broken in googleapiclient 1.5.3 maybe earlier
 
 from config import config
 
