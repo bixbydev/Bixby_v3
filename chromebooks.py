@@ -12,6 +12,7 @@
 
 import json
 import csv
+import time
 
 import gservice.directoryservice
 
@@ -82,8 +83,8 @@ class Devices(object):
 		if patchbody:
 			devicepatch = self.cd.patch(customerId='my_customer', 
 				deviceId=deviceid, body=patchbody)
-			result = devicepatch.execute()
-			print result
+			print patchbody
+			return devicepatch.execute()
 
 	def dump_json(self, file_path):
 		if not self.fetched_devices:
@@ -163,13 +164,13 @@ def read_csv_updates(csv_file_path):
 		csvreader = csv.reader(f, delimiter=',', quotechar='\"')
 		updates = []
 		headers = csvreader.next()
-		serial_idx = headers.index('serialNumber') # Checks the index of serialNumber
+		# serial_idx = headers.index('serialNumber') # Checks the index of serialNumber
 		for i in csvreader:
 			updates.append(dict(zip(headers, i)))
 		return updates
 
 
-def update_device(deviceid, user=None, assetid=None, location=None, orgunitpath=None):
+def update_device(deviceid=None, user=None, assetid=None, location=None, orgunitpath=None):
 	"""
 	user - the user account associated with the enrolled device
 	assetid - the asset tracking number assigned to the device
@@ -192,6 +193,30 @@ def update_device(deviceid, user=None, assetid=None, location=None, orgunitpath=
 		patchbody['orgUnitPath'] = orgunitpath
 
 	if patchbody:
-		cd.patch(customerId='my_customer', deviceId=deviceid, body=patchbody)
+		response = cd.patch(customerId='my_customer', deviceId=deviceid, body=patchbody).execute()
+		print 'Patched'
+		return response
+
+
+
+dv = Devices()
+
+def update_devices(csv_file_path):
+	updating = 0
+	updates = read_csv_updates(csv_file_path)
+	for device in updates:
+		deviceid = dv._get_deviceid(device['serialNumber'])
+		user = device['annotatedUser']
+		assetid = device['annotatedAssetId']
+		location = device['annotatedLocation']
+		orgunitpath = device['orgUnitPath']
+		update = dv.update_device(device['serialNumber'], user=device['annotatedUser'], assetid=device['annotatedAssetId'], 
+			location=device['annotatedLocation'], orgunitpath=device['orgUnitPath'])
+		#print update_device(deviceid=deviceid, orgunitpath=device['orgUnitPath'])
+		updating += 1
+		print "Updated %d %s %s %s %s %s" %(updating, device['serialNumber'], user, assetid, location, orgunitpath)
+		print update
+		#time.sleep(1)
+
 
 
