@@ -24,6 +24,8 @@ new_portal_usernames = """SELECT sp.student_number
 	, REPLACE(CONCAT(bu.GIVEN_NAME, DATE_FORMAT(sp.dob, '%m%d%y')), ' ', '') AS Web_Password
 	, LEFT(REPLACE(CONCAT(bu.GIVEN_NAME, CAST(sp.student_number AS CHAR)), ' ', ''), 20) AS WEB_ID
 	, bu.PRIMARY_EMAIL AS BUSD_Email_Address
+    -- , sp.STUDENT_ALLOWWEBACCESS
+    -- , sp.PARENT_ALLOWWEBACCESS
 	
 FROM bixby_user AS bu
 JOIN students_py AS sp
@@ -32,6 +34,7 @@ JOIN students_py AS sp
 		
 WHERE (sp.student_web_id IS NULL OR sp.parent_web_id IS NULL)
 	AND sp.grade_level > 1
+    OR (sp.grade_level > 6 AND sp.STUDENT_ALLOWWEBACCESS = 0 AND sp.EXTERNAL_USERSTATUS=0)
 ORDER BY bu.family_name"""
 
 file_output_path = config.PRIVATE_DIRECTORY
@@ -49,6 +52,8 @@ def main():
 	remote_path = config.PS_PASSWORDS_REMOTE_PATH
 
 	util.sftp_file(username, password, hostname, local_path, remote_path, file_name)
+	mcurs.close()
+	mcon.close()
 
 
 if __name__ == '__main__':

@@ -54,6 +54,8 @@ get_students_from_sis = """SELECT s.id EXTERNAL_UID
 						, ps_customfields.getcf('students',s.id,'BUSD_Email_Override') EMAIL_OVERRIDE -- Pull from field BUSD_EMAIL_OVERRIDE
 						, s.STUDENT_WEB_ID
 						, s.WEB_ID PARENT_WEB_ID
+						, s.STUDENT_ALLOWWEBACCESS
+						, s.ALLOWWEBACCESS PARENT_ALLOWWEBACCESS
 						FROM students s
 						-- WHERE s.id BETWEEN 5000 AND 5200 
 						-- AND s.grade_level >= 3
@@ -101,11 +103,13 @@ insert_students_py = """INSERT INTO STUDENTS_PY (EXTERNAL_UID
 											, EMAIL_OVERRIDE
 											, STUDENT_WEB_ID
 											, PARENT_WEB_ID
+											, STUDENT_ALLOWWEBACCESS
+											, PARENT_ALLOWWEBACCESS
 											) 
 									VALUES (%s, %s, %s, %s, %s
 											, %s, %s, %s, %s, %s
 											, %s, %s, %s, %s, %s
-											, %s, %s, %s)"""
+											, %s, %s, %s, %s, %s)"""
 
 sql_get_bixby_user = """SELECT ID
 						, USER_TYPE

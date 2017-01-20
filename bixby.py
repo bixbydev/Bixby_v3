@@ -31,6 +31,7 @@ from config import config
 import groups.schoolconferences
 import groups.sectiongroups
 import groups.yoggroups
+import psextras.student_portal_logins
 
 
 log.info('Starting Bixby')
@@ -253,8 +254,12 @@ def new_staff_and_students(cursor):
 	return new_users
 
 
-mcon = database.mysql.base.CursorWrapper()
-mc = mcon.cursor
+# mcon = database.mysql.base.CursorWrapper()
+# mc = mcon.cursor
+
+# ocon = database.oracle.base.CursorWrapper()
+# oc = ocon.cursor
+
 
 def main():
 	ocon = database.oracle.base.CursorWrapper()
@@ -282,6 +287,9 @@ def main():
 	
 	# Run the Year of Graduation (YOG) Groups
 	groups.yoggroups.main()
+	
+	# Generate a Student Portal Login file
+	psextras.student_portal_logins.main()
 
 
 
