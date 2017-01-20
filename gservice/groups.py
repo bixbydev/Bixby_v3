@@ -232,7 +232,6 @@ class SchemaBuilder(object):
     def construct(self, **kwargs):
         self.__clear_schema_props()
         for arg, value in kwargs.iteritems():
-            #print arg, value #Remove
             self.__setattr__(arg, value)
 
 
@@ -639,7 +638,7 @@ def insert_group_member(cursor, table, google_groupid, db_payload):
     #log.debug((sql) %tuple(values))
     cursor.execute(sql, values)
 
-
+ 
 def refresh_all_group_members(overwrite=False):
     mcon = database.mysql.base.CursorWrapper()
     mc = mcon.cursor
@@ -679,11 +678,11 @@ def batch_delete_groups(list_of_groupids):
         bg.execute() # Delete the Extra Groups
 
 
-def test_pull_groups():
+def pull_groups():
     m = CursorWrapper()
     m.cursor.execute("""SELECT GOOGLE_GROUPID
                         FROM groups g
-                        WHERE g.GROUP_EMAIL LIKE 'z%'""")
+                        WHERE g.GROUP_TYPE = 'StudentSection'""")
 
     groups = m.cursor.fetchall()
     return [i[0] for i in groups]

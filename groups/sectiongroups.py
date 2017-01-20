@@ -16,6 +16,10 @@ import database.oracle.base
 
 import gservice.groups
 
+START_TERM = 2600
+END_TERM = START_TERM + 10
+
+
 
 get_sections_from_ps = """SELECT sec.id sectionid
 , sec.schoolid
@@ -58,12 +62,12 @@ JOIN period p
 JOIN schools sch
   ON sec.schoolid = sch.school_number
   
-WHERE sec.termid BETWEEN 2500 AND 2510
+WHERE sec.termid BETWEEN 2600 AND 2610
 AND (sch.high_grade > 5
 OR sec.course_number LIKE '_000'
 OR sec.course_number = 'SDC01')
 
-"""
+""" 
 
 get_cc_schedule_from_ps = """SELECT id ps_id
 , studentid
@@ -73,7 +77,7 @@ get_cc_schedule_from_ps = """SELECT id ps_id
 , dateenrolled
 , dateleft
 FROM cc
-WHERE ABS(termid) BETWEEN 2500 AND 2510
+WHERE ABS(termid) BETWEEN 2600 AND 2610
 """
 
 new_section_groups = """SELECT sp.GROUP_EMAIL

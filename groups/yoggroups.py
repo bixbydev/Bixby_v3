@@ -8,27 +8,27 @@ import database.oracle.base
 import gservice.groups
 
 
-CALCULATION_YEAR = 2028
+CALCULATION_YEAR = 2029
 
 
 
 new_yog_groups = """SELECT LOWER(CONCAT('y', sites.ABBREVIATION, '-classof-'
-								, 2028 - (dpt.unit), '-students@berkeley.net')
-								) AS GROUP_EMAIL
-	, CONCAT(sites.DESCRIPTION, ' Class of ', 2028 - (dpt.unit)) AS GROUP_NAME
-	, CONCAT(sites.DESCRIPTION, ' Class of ', 2028 - (dpt.unit)) AS GROUP_DESCRIPTION
-	, 2028 - dpt.UNIQUE_IDENTIFIER AS UNIQUE_ATTRIBUTE
-	, dpt.SITECODE AS DEPARTMENT_ID
-	, 'StuSchoolYOG' AS GROUP_TYPE
+                                , {0} - (dpt.unit), '-students@berkeley.net')
+                                ) AS GROUP_EMAIL
+    , CONCAT(sites.DESCRIPTION, ' Class of ', {0} - (dpt.unit)) AS GROUP_NAME
+    , CONCAT(sites.DESCRIPTION, ' Class of ', {0} - (dpt.unit)) AS GROUP_DESCRIPTION
+    , {0} - dpt.UNIQUE_IDENTIFIER AS UNIQUE_ATTRIBUTE
+    , dpt.SITECODE AS DEPARTMENT_ID
+    , 'StuSchoolYOG' AS GROUP_TYPE
 FROM departments AS dpt
 JOIN sites
-	ON dpt.SITEID = sites.siteid
+    ON dpt.SITEID = sites.siteid
 LEFT OUTER JOIN groups AS g
-	ON 2028 - dpt.UNIQUE_IDENTIFIER = g.UNIQUE_ATTRIBUTE
-		AND dpt.sitecode = g.DEPARTMENT_ID
+    ON {0} - dpt.UNIQUE_IDENTIFIER = g.UNIQUE_ATTRIBUTE
+        AND dpt.sitecode = g.DEPARTMENT_ID
 WHERE g.GROUP_EMAIL IS NULL
-	AND sites.AUTO_EXCLUDE = 0
-	AND sites.UPPER_UNIT > 5"""
+    AND sites.AUTO_EXCLUDE = 0
+    AND sites.UPPER_UNIT > 5""".format(CALCULATION_YEAR)
 
 
 stale_yog_members = """SELECT gm.GOOGLE_GROUPID
@@ -46,7 +46,7 @@ JOIN group_member AS gm
 JOIN bixby_user bu
 	ON gm.GOOGLE_USERID = bu.GOOGLE_ID
 LEFT OUTER JOIN (SELECT sp.SCHOOLID
-					, 2028 - sp.GRADE_LEVEL AS UNIQUE_ATTRIBUTE
+					, {0} - sp.GRADE_LEVEL AS UNIQUE_ATTRIBUTE
 					, bu.GOOGLE_ID
                     
 				FROM students_py AS sp
@@ -58,7 +58,7 @@ LEFT OUTER JOIN (SELECT sp.SCHOOLID
 						AND gm.GOOGLE_USERID = student.google_id
 WHERE g.group_type = 'StuSchoolYOG'
 	AND student.google_id IS NULL
-    """
+    """.format(CALCULATION_YEAR)
 
 
 new_yog_members = """SELECT g.GOOGLE_GROUPID
@@ -73,12 +73,12 @@ JOIN bixby_user AS bu
 	AND bu.USER_TYPE = 'student'
 JOIN groups AS g
 	ON sp.schoolid = g.DEPARTMENT_ID
-		AND 2028 - sp.GRADE_LEVEL = g.UNIQUE_ATTRIBUTE
+		AND {0} - sp.GRADE_LEVEL = g.UNIQUE_ATTRIBUTE
 LEFT OUTER JOIN group_member AS gm
 	ON bu.google_id = gm.GOOGLE_USERID
 		AND g.GOOGLE_GROUPID = gm.GOOGLE_GROUPID
 
-WHERE gm.id IS NULL"""
+WHERE gm.id IS NULL""".format(CALCULATION_YEAR)
 
 
 def main():
