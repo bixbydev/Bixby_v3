@@ -48,7 +48,7 @@ AUTH_FILE = os.path.join(PRIVATE_DIRECTORY, config.get(GSCOPE, 'AUTH_FILE'))
 LOOKUP_TABLE_CSV = os.path.join(PRIVATE_DIRECTORY, PRIMARY_DOMAIN+'.lookuptable.csv')
 ALL_USERS_JSON = os.path.join(PRIVATE_DIRECTORY, PRIMARY_DOMAIN+'.all_users.json')
 
-GTIME_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
+GTIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 GEXPIRY_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
 YEAR = datetime.strftime(datetime.now(), '%Y')

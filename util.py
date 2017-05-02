@@ -66,6 +66,7 @@ def un_map(dic):
 
 def return_datetime(iso8601s):
 	"""Returns datetime object from iso8601 string in Google JSON response"""
+	if not iso8601s: iso8601s = '1970-01-01T00:00:00.000Z'
 	try:
 		return datetime.strptime(iso8601s, config.GTIME_FORMAT)
 	except ValueError:

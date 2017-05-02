@@ -14,12 +14,13 @@ import json
 import csv
 import time
 
+import util
 import gservice.directoryservice
 
 ds = gservice.directoryservice.DirectoryService()
 cd = ds.chromeosdevices()
 
-device_lookup = {}
+# device_lookup = {}
 
 class Devices(object):
 	"""docstring for ClassName"""
@@ -114,7 +115,7 @@ class Devices(object):
 				notes = i.get('notes')
 				model = i.get('model')
 				platformVersion = i.get('platformVersion')
-				lastSync = i.get('lastSync')
+				lastSync = util.return_datetime(i.get('lastSync'))
 				status = i.get('status')
 				csvwriter.writerow([serialNumber, deviceId, macAddress, 
 					annotatedAssetId, annotatedLocation, annotatedUser, notes, 
@@ -170,7 +171,7 @@ def read_csv_updates(csv_file_path):
 		return updates
 
 
-def update_device(deviceid=None, user=None, assetid=None, location=None, orgunitpath=None):
+def update_device(deviceid=None, user=None, assetid=None, location=None, notes=None, orgunitpath=None):
 	"""
 	user - the user account associated with the enrolled device
 	assetid - the asset tracking number assigned to the device
@@ -192,6 +193,9 @@ def update_device(deviceid=None, user=None, assetid=None, location=None, orgunit
 	if orgunitpath:
 		patchbody['orgUnitPath'] = orgunitpath
 
+	if notes:
+		patchbody['notes'] = notes
+
 	if patchbody:
 		response = cd.patch(customerId='my_customer', deviceId=deviceid, body=patchbody).execute()
 		print 'Patched'
@@ -210,11 +214,12 @@ def update_devices(csv_file_path):
 		assetid = device['annotatedAssetId']
 		location = device['annotatedLocation']
 		orgunitpath = device['orgUnitPath']
+		notes = device['notes']
 		update = dv.update_device(device['serialNumber'], user=device['annotatedUser'], assetid=device['annotatedAssetId'], 
-			location=device['annotatedLocation'], orgunitpath=device['orgUnitPath'])
+			location=device['annotatedLocation'], notes=device['notes'], orgunitpath=device['orgUnitPath'])
 		#print update_device(deviceid=deviceid, orgunitpath=device['orgUnitPath'])
 		updating += 1
-		print "Updated %d %s %s %s %s %s" %(updating, device['serialNumber'], user, assetid, location, orgunitpath)
+		print "Updated %d %s %s %s %s %s %s" %(updating, device['serialNumber'], user, assetid, location, orgunitpath, notes)
 		print update
 		#time.sleep(1)
 
