@@ -258,13 +258,6 @@ class UserMod(BaseUser, CursorWrapper):
 		pass
 		
 
-
-
-
-
-
-
-
 class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 	def __init__(self):
 		CursorWrapper.__init__(self)

@@ -27,6 +27,7 @@ from gservice import users
 from database import queries
 import database.mysql.base
 import database.oracle.base
+import database.postgres.base
 from config import config
 import groups.schoolconferences
 import groups.sectiongroups
@@ -36,30 +37,41 @@ import psextras.student_portal_logins
 
 log.info('Starting Bixby')
 
-def refresh_staff_py(oracursor, mycursor):
-	"""Pulls the staff data from PowerSchool and copies it to Bixby DB
-	Eventually replace this with something more system independent BEH"""
-	log.info('Refreshing STAFF_PY table data')
-	ps_staff = oracursor.execute(queries.get_staff_from_sis)
-	ps_staff = oracursor.fetchall()
-	log.info('Truncating STAFF_PY Table')
-	mycursor.execute('TRUNCATE TABLE STAFF_PY')
-	mycursor.executemany(queries.insert_staff_py, ps_staff)
-	log.info('%s Records Inserted' %oracursor.rowcount)
+# def establish_db_cursors():
+# Estabilish DB Cursors
+# MySQL Bixby DB Connection
+mcon = database.mysql.base.CursorWrapper()
+mc = mcon.cursor
+
+# Oracle SIS Connection
+ocon = database.oracle.base.CursorWrapper()
+oc = ocon.cursor
+
+# Postgres SIS Connection
+pcon = database.postgres.base.CursorWrapper()
+pc = pcon.cursor
 
 
-def refresh_students_py(oracursor, mycursor):
-	"""Pulls the student data from PowerSchool and copies it to Bixby DB
-	Eventually replace this with something more system independent BEH"""
-	log.info('Refreshing STUDENTS_PY table data')
-	ps_students = oracursor.execute(queries.get_students_from_sis)
-	ps_students = oracursor.fetchall()
-	print sys.getsizeof(ps_students)
-	log.info('Truncating STUDENTS_PY Table')
-	mycursor.execute('TRUNCATE TABLE STUDENTS_PY')
-	log.info('Table Truncated')
-	mycursor.executemany(queries.insert_students_py, ps_students)
-	log.info('%s Records Inserted' %oracursor.rowcount)
+def close_db_connections():
+	mcon.close()
+	ocon.close()
+	pcon.close()
+
+
+def refresh_py_table(siscursor, mycursor, sis_pull_query, insert_py_query, truncate_table):
+	"""Pulls the user data from the SIS and copies it to Bixby py tables
+	siscursor is a cursor object to the SIS
+	mycursor is a cursor to the Bixby DB (MySQL)
+	sis_pull_query is a query to the SIS for user info
+	insert_py_query is an INSERT statement to inserte the results of the sis_pull_query
+	"""
+	log.info('Refreshing %s table data' %(truncate_table))
+	sis_pull_data = siscursor.execute(sis_pull_query)
+	sis_pull_data = siscursor.fetchall()
+	log.info('Truncating %s Table' %(truncate_table))
+	mycursor.execute('TRUNCATE TABLE %s' %(truncate_table))
+	mycursor.executemany(insert_py_query, sis_pull_data)
+	log.info('%s Records Inserted' %siscursor.rowcount)
 
 
 def multidb_bulk_insert(sourcecursor, destinationcursor, sourcequery, destinationtable):
@@ -247,53 +259,59 @@ def current_users(cursor, user_type=None, random=False, limit=None):
 	users = cursor.fetchall()
 	return users
 
-def new_staff_and_students(cursor):
-	cursor.execute(queries.new_staff_and_students)
+
+def new_staff_and_students(cursor, new_users_query):
+	# cursor.execute(queries.new_staff_and_students)
+	cursor.execute(new_users_query)
 	# cursor.execute(queries.new_staff_only)
 	new_users = cursor.fetchall()
 	return new_users
 
 
-# mcon = database.mysql.base.CursorWrapper()
-# mc = mcon.cursor
-
-# ocon = database.oracle.base.CursorWrapper()
-# oc = ocon.cursor
-
-
 def main():
-	ocon = database.oracle.base.CursorWrapper()
-	oc = ocon.cursor
+	# Backup MySQL Database
+	#establish_db_cursors()
+	database.mysql.base.backup_mysql()
 
 	ds = DirectoryService()
 	us = ds.users()
 
-	refresh_staff_py(oc, mc)
-	refresh_students_py(oc, mc)
+	# Pull/Refresh from PowerSchool
+	refresh_py_table(oc, mc, queries.get_staff_from_sis, queries.insert_staff_py, 'staff_py')
+	refresh_py_table(oc, mc, queries.get_students_from_sis, queries.insert_students_py, 'students_py')
+
+	# Pull/Refresh from Illuminate
+	refresh_py_table(pc, mc, queries.test_get_staff_from_sis, queries.test_insert_staff_py, 'test_staff_py')
+	refresh_py_table(pc, mc, queries.test_get_students_from_sis, queries.test_insert_students_py, 'test_students_py')
+
+
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
 	#sync_all_users_from_google(cursor=mc, user_service=us)
 	log.info('Updating Users')
 	users_list = current_users(mc, user_type='student', random=False)
-	refresh_users(users_list)
+	# refresh_users(users_list) # This is where the magic happens!
 	log.info('Adding New Users')
 	new_users = new_staff_and_students(mc)
-	refresh_users(new_users)
+	# refresh_users(new_users) 
 
 	# Run the School Conferences
-	groups.schoolconferences.main()
+	# groups.schoolconferences.main()
 
 	# Run the Section Groups
-	groups.sectiongroups.main()
+	# groups.sectiongroups.main()
 	
 	# Run the Year of Graduation (YOG) Groups
-	groups.yoggroups.main()
+	# groups.yoggroups.main()
 	
 	# Generate a Student Portal Login file
-	psextras.student_portal_logins.main()
+	# psextras.student_portal_logins.main()
+
 
 
 
 if __name__ == '__main__':
 	main()
+	close_db_connections()
+	
 
 

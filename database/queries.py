@@ -7,6 +7,160 @@
 # Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
 #=====================================================================#
 
+test_get_staff_from_sis = """SELECT u.user_id EXTERNAL_UID --Illuminate Assigned
+, u.local_user_id STAFFID -- PowerSchool DCID (Probably Users DCID)
+--, u.address SCHOOLID
+, u.address SCHOOLID -- Fix
+, u.local_user_id TEACHERNUMBER
+, CASE WHEN u.state_id IS NOT NULL THEN '1' ELSE '0' END Certificated
+, u.first_name GIVEN_NAME
+, u.last_name FAMILY_NAME
+, u.middle_name MIDDLE_NAME
+, u.gender
+, u.active EXTERNAL_USERSTATUS
+, 1 STAFF_TYPE
+, CASE WHEN u.email1 = '' THEN '1' 
+		WHEN u.email1 IS NULL THEN '1' 
+        	ELSE '0' END Suspend_Account
+, CASE WHEN u.email1 !='' THEN '1'
+		WHEN u.email1 IS NOT NULL THEN '1' 
+        	ELSE '0'END BUSD_Email
+, u.email1 BUSD_Email_Address
+, CASE WHEN u.state_id IS NOT NULL THEN '1' ELSE '2' END Staff_Conference
+
+FROM users u
+WHERE u.local_user_id !=''
+	AND u.address != ''
+"""
+
+test_insert_staff_py = """INSERT INTO TEST_STAFF_PY (EXTERNAL_UID
+						, STAFFID
+						, SCHOOLID
+						, TEACHERNUMBER
+						, CERTIFICATED
+						, GIVEN_NAME
+						, FAMILY_NAME
+						, MIDDLE_NAME
+						, GENDER
+						, EXTERNAL_USERSTATUS
+						, STAFF_TYPE						
+						, SUSPEND_ACCOUNT
+						, BUSD_Email
+						, BUSD_Email_Address
+						, Staff_Conference)
+						VALUES(%s, %s, %s, %s, %s,
+						 		%s, %s, %s, %s, %s, 
+						 		%s, %s, %s, %s, %s)"""
+
+test_get_students_from_sis = """SELECT s.student_id
+, s.local_student_id
+, sch.site_id
+, s.first_name
+, s.last_name
+, s.middle_name
+, s.birth_date
+, CASE WHEN s.gender NOT IN ('M','F') THEN 'U' ELSE s.gender END Gender
+, sa.grade_level_id 
+, house.house_name
+, sa.entry_date
+, sa.leave_date
+, s.email
+, CASE WHEN cf.custom_field_busd_email_override = '1' THEN '1' 
+		ELSE '0' END Email_Override
+, CASE WHEN cf.custom_field_busd_email_suspend = '1' THEN '1'
+		ELSE '0' END Email_Suspend
+
+FROM students s
+JOIN student_session_aff sa
+	ON sa.student_id = s.student_id
+		AND sa.entry_date = (SELECT MAX(ssa.entry_date)
+                         		FROM student_session_aff ssa
+                         		WHERE ssa.student_id = sa.student_id
+                       				GROUP BY ssa.student_id)
+JOIN sessions ses
+	ON ses.session_id = sa.session_id
+JOIN sites sch
+	ON sch.site_id = ses.site_id
+JOIN student_custom_fields_data cf
+	ON cf.student_id = s.student_id
+JOIN portal.portal_students ps
+	ON ps.student_id = s.student_id
+
+LEFT OUTER JOIN (SELECT sha.student_id, h.house_name
+					FROM student_house_aff sha
+					JOIN houses h
+					ON h.house_id = sha.house_id) house
+         ON house.student_id = s.student_id
+         
+
+
+WHERE sa.grade_level_id >=3
+
+ORDER BY s.student_id
+"""
+
+test_insert_students_py = """INSERT INTO TEST_STUDENTS_PY (EXTERNAL_UID
+											, SCHOOLID
+											, STUDENT_NUMBER
+											, GIVEN_NAME
+											, FAMILY_NAME
+											, MIDDLE_NAME
+											, DOB
+											, GENDER
+											, GRADE_LEVEL
+											, HOME_ROOM
+											, AREA
+											, ENTRYDATE
+											, EXITDATE
+											, EXTERNAL_USERSTATUS
+											, SUSPEND_ACCOUNT
+											, EMAIL_OVERRIDE
+											, STUDENT_WEB_ID
+											, PARENT_WEB_ID
+											, STUDENT_ALLOWWEBACCESS
+											, PARENT_ALLOWWEBACCESS
+											) 
+									VALUES (%s, %s, %s, %s, %s
+											, %s, %s, %s, %s, %s
+											, %s, %s, %s, %s, %s
+											, %s, %s, %s, %s, %s)"""
+
+
+## Previous Testing Queries unsure if they are still necessary
+test_new_staff_and_students = """SELECT sp.EXTERNAL_UID 
+							, 'student'
+							FROM students_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'student'
+							WHERE sp.EXTERNAL_USERSTATUS = 0
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL
+							AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+
+								UNION 
+
+							SELECT sp.EXTERNAL_UID
+							, 'staff' 
+							FROM staff_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'staff'
+							WHERE sp.EXTERNAL_USERSTATUS = 0
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL"""
+
+
+test_new_staff_only = """SELECT sp.EXTERNAL_UID
+							, 'staff' 
+							FROM test_staff_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'staff'
+							WHERE sp.EXTERNAL_USERSTATUS = 0
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL"""							
+
 
 get_staff_from_sis = """SELECT t.USERS_DCID EXTERNAL_UID
 , t.id
