@@ -37,8 +37,8 @@ PASSWORD_SALT = None
 
 # Google Service Configuration Section
 # Set Scope GtestGoogleApps or GoogleApps
-GSCOPE = 'GoogleApps'
-# GSCOPE = 'GtestGoogleApps'
+# GSCOPE = 'GoogleApps'
+GSCOPE = 'GtestGoogleApps'
 PRIMARY_DOMAIN = config.get(GSCOPE, 'PRIMARY_DOMAIN')
 STAFF_DOMAIN = unicode(PRIMARY_DOMAIN)
 STUDENT_DOMAIN = unicode(config.get(GSCOPE, 'STUDENT_DOMAIN'))
@@ -73,12 +73,14 @@ OU_CSV_FILE_PATH = config.get('Bixby', 'orgunitcsvfile')
 
 
 # MySQL Configuration Section
-MYSQL_BACKUPPATH = os.path.join(PRIVATE_DIRECTORY, config.get('MySQL', 'backup_path'))
-MYSQL_DB = config.get('MySQL', 'db')
-MYSQL_HOST = config.get('MySQL', 'host')
-MYSQL_USER = config.get('MySQL', 'user')
+# MYSQL_CONNECTION_NAME = 'MySQL'
+MYSQL_CONNECTION_NAME = 'MySQLTest'
+MYSQL_BACKUPPATH = os.path.join(PRIVATE_DIRECTORY, config.get(MYSQL_CONNECTION_NAME, 'backup_path'))
+MYSQL_DB = config.get(MYSQL_CONNECTION_NAME, 'db')
+MYSQL_HOST = config.get(MYSQL_CONNECTION_NAME, 'host')
+MYSQL_USER = config.get(MYSQL_CONNECTION_NAME, 'user')
 
-MYSQL_PASSWORD = config.get('MySQL', 'password')
+MYSQL_PASSWORD = config.get(MYSQL_CONNECTION_NAME, 'password')
 if not MYSQL_PASSWORD:
 	print 'No Password Set for MySQL'
 	MYSQL_PASSWORD = getpass.getpass('Please enter the MySQL User Password: ')
@@ -108,6 +110,13 @@ PS_PASSWORDS_USER = config.get('PsPasswords', 'user')
 PS_PASSWORDS_PASSWORD = config.get('PsPasswords', 'password')
 PS_PASSWORDS_REMOTE_PATH = config.get('PsPasswords', 'remote_path')
 
+
+# Postgres Configuration Section
+PG_HOST = config.get('Postgres', 'host')
+PG_USER = config.get('Postgres', 'user')
+PG_PASSWORD = config.get('Postgres', 'password')
+PG_DB = config.get('Postgres', 'database')
+PG_PORT = config.get('Postgres', 'port')
 
 
 def main():
