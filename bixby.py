@@ -277,8 +277,8 @@ def main():
 	us = ds.users()
 
 	# Pull/Refresh from PowerSchool
-	refresh_py_table(oc, mc, queries.get_staff_from_sis, queries.insert_staff_py, 'staff_py')
-	refresh_py_table(oc, mc, queries.get_students_from_sis, queries.insert_students_py, 'students_py')
+	# refresh_py_table(oc, mc, queries.get_staff_from_sis, queries.insert_staff_py, 'staff_py')
+	# refresh_py_table(oc, mc, queries.get_students_from_sis, queries.insert_students_py, 'students_py')
 
 	# Pull/Refresh from Illuminate
 	refresh_py_table(pc, mc, queries.test_get_staff_from_sis, queries.test_insert_staff_py, 'test_staff_py')
@@ -291,7 +291,8 @@ def main():
 	users_list = current_users(mc, user_type='student', random=False)
 	# refresh_users(users_list) # This is where the magic happens!
 	log.info('Adding New Users')
-	new_users = new_staff_and_students(mc)
+	new_users = new_staff_and_students(mc, queries.test_new_staff_and_students)
+	print new_users
 	# refresh_users(new_users) 
 
 	# Run the School Conferences

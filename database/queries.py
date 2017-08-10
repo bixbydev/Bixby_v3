@@ -52,27 +52,42 @@ test_insert_staff_py = """INSERT INTO TEST_STAFF_PY (EXTERNAL_UID
 						 		%s, %s, %s, %s, %s, 
 						 		%s, %s, %s, %s, %s)"""
 
-test_get_students_from_sis = """SELECT s.student_id
-, s.local_student_id
-, sch.site_id
-, s.first_name
-, s.last_name
+test_get_students_from_sis = """
+SELECT s.student_id EXTERNAL_UID
+, sch.site_id SCHOOLID
+, s.local_student_id STUDENT_NUMBER
+, s.first_name GIVEN_NAME
+, s.last_name FAMILY_NAME
 , s.middle_name
-, s.birth_date
+, s.birth_date DOB
 , CASE WHEN s.gender NOT IN ('M','F') THEN 'U' ELSE s.gender END Gender
-, sa.grade_level_id 
-, house.house_name
+, CASE WHEN gl.short_name = 'K' THEN '0' 
+    WHEN gl.short_name = 'TK' THEN '-1'
+    WHEN gl.short_name = 'PRE' THEN '-2'
+    ELSE gl.short_name END::INTEGER Grade_Level
+, NULL HOME_ROOM    
+, house.house_name Area
 , sa.entry_date
 , sa.leave_date
-, s.email
+, CASE WHEN '2017-09-10' BETWEEN sa.entry_date AND sa.leave_date THEN 1 ELSE 0 END EXTERNAL_USERSTATUS
+, CASE WHEN cf.custom_field_busd_email_suspend=true THEN 1 ELSE 0 END Email_Suspend
+-- , cf.custom_field_busd_email_suspend
+, cf.custom_field_busd_override_email EMAIL_OVERRIDE
+, NULL STUDENT_WEB_ID
+, NULL PARENT_WEB_ID
+, 1 STUDENT_ALLOWWEBACCESS
+, 1 PARENT_ALLOWWEBACCESS
+/*
 , CASE WHEN cf.custom_field_busd_email_override = '1' THEN '1' 
 		ELSE '0' END Email_Override
 , CASE WHEN cf.custom_field_busd_email_suspend = '1' THEN '1'
 		ELSE '0' END Email_Suspend
-
+*/
 FROM students s
 JOIN student_session_aff sa
 	ON sa.student_id = s.student_id
+        AND sa.is_primary_ada = True
+        AND sa.entry_date != sa.leave_date
 		AND sa.entry_date = (SELECT MAX(ssa.entry_date)
                          		FROM student_session_aff ssa
                          		WHERE ssa.student_id = sa.student_id
@@ -83,20 +98,21 @@ JOIN sites sch
 	ON sch.site_id = ses.site_id
 JOIN student_custom_fields_data cf
 	ON cf.student_id = s.student_id
-JOIN portal.portal_students ps
-	ON ps.student_id = s.student_id
+-- LEFT OUTER JOIN portal.portal_students ps
+	-- ON ps.student_id = s.student_id
+JOIN grade_levels gl
+	ON sa.grade_level_id = gl.grade_level_id
 
-LEFT OUTER JOIN (SELECT sha.student_id, h.house_name
+LEFT OUTER JOIN (SELECT sha.student_id, sha.session_id, h.house_name
 					FROM student_house_aff sha
 					JOIN houses h
 					ON h.house_id = sha.house_id) house
          ON house.student_id = s.student_id
-         
+            AND ses.session_id = house.session_id
 
 
-WHERE sa.grade_level_id >=3
-
-ORDER BY s.student_id
+-- WHERE gl.short_name = 'PRE'
+WHERE s.student_id NOT IN (42636, 49374, 41514);
 """
 
 test_insert_students_py = """INSERT INTO TEST_STUDENTS_PY (EXTERNAL_UID
@@ -125,9 +141,32 @@ test_insert_students_py = """INSERT INTO TEST_STUDENTS_PY (EXTERNAL_UID
 											, %s, %s, %s, %s, %s
 											, %s, %s, %s, %s, %s)"""
 
+test_new_staff_and_students = """SELECT sp.EXTERNAL_UID 
+							, 'student'
+							FROM test_students_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'student'
+							WHERE sp.EXTERNAL_USERSTATUS = 1
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL
+							AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+
+								UNION 
+
+							SELECT sp.EXTERNAL_UID
+							, 'staff' 
+							FROM test_staff_py AS sp
+							LEFT OUTER JOIN bixby_user AS bu
+								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
+									AND bu.USER_TYPE = 'staff'
+							WHERE sp.EXTERNAL_USERSTATUS = 1 -- Changed Default Value True/Active (Previously 0 Active)
+							AND sp.SUSPEND_ACCOUNT = 0
+							AND bu.PRIMARY_EMAIL IS NULL"""
+
 
 ## Previous Testing Queries unsure if they are still necessary
-test_new_staff_and_students = """SELECT sp.EXTERNAL_UID 
+old_test_new_staff_and_students = """SELECT sp.EXTERNAL_UID 
 							, 'student'
 							FROM students_py AS sp
 							LEFT OUTER JOIN bixby_user AS bu
