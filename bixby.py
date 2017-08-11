@@ -277,12 +277,12 @@ def main():
 	us = ds.users()
 
 	# Pull/Refresh from PowerSchool
-	# refresh_py_table(oc, mc, queries.get_staff_from_sis, queries.insert_staff_py, 'staff_py')
-	# refresh_py_table(oc, mc, queries.get_students_from_sis, queries.insert_students_py, 'students_py')
+	refresh_py_table(oc, mc, queries.get_staff_from_ps, queries.insert_staff_py_ps, 'staff_py_ps')
+	refresh_py_table(oc, mc, queries.get_students_from_ps, queries.insert_students_py_ps, 'students_py_ps')
 
 	# Pull/Refresh from Illuminate
-	refresh_py_table(pc, mc, queries.test_get_staff_from_sis, queries.test_insert_staff_py, 'test_staff_py')
-	refresh_py_table(pc, mc, queries.test_get_students_from_sis, queries.test_insert_students_py, 'test_students_py')
+	refresh_py_table(pc, mc, queries.get_staff_from_sis, queries.insert_staff_py, 'staff_py')
+	refresh_py_table(pc, mc, queries.get_students_from_sis, queries.insert_students_py, 'students_py')
 
 
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
@@ -291,7 +291,7 @@ def main():
 	users_list = current_users(mc, user_type='student', random=False)
 	# refresh_users(users_list) # This is where the magic happens!
 	log.info('Adding New Users')
-	new_users = new_staff_and_students(mc, queries.test_new_staff_and_students)
+	new_users = new_staff_and_students(mc, queries.new_staff_and_students)
 	print new_users
 	# refresh_users(new_users) 
 

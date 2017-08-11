@@ -7,7 +7,7 @@
 # Distributed under the terms of the GNU GENERAL PUBLIC LICENSE V3.   #
 #=====================================================================#
 
-test_get_staff_from_sis = """SELECT u.user_id EXTERNAL_UID --Illuminate Assigned
+get_staff_from_sis = """SELECT u.user_id EXTERNAL_UID --Illuminate Assigned
 , u.local_user_id STAFFID -- PowerSchool DCID (Probably Users DCID)
 --, u.address SCHOOLID
 , u.address SCHOOLID -- Fix
@@ -33,7 +33,7 @@ WHERE u.local_user_id !=''
 	AND u.address != ''
 """
 
-test_insert_staff_py = """INSERT INTO TEST_STAFF_PY (EXTERNAL_UID
+insert_staff_py = """INSERT INTO STAFF_PY (EXTERNAL_UID
 						, STAFFID
 						, SCHOOLID
 						, TEACHERNUMBER
@@ -52,7 +52,7 @@ test_insert_staff_py = """INSERT INTO TEST_STAFF_PY (EXTERNAL_UID
 						 		%s, %s, %s, %s, %s, 
 						 		%s, %s, %s, %s, %s)"""
 
-test_get_students_from_sis = """
+get_students_from_sis = """
 SELECT s.student_id EXTERNAL_UID
 , sch.site_id SCHOOLID
 , s.local_student_id STUDENT_NUMBER
@@ -115,7 +115,7 @@ LEFT OUTER JOIN (SELECT sha.student_id, sha.session_id, h.house_name
 WHERE s.student_id NOT IN (42636, 49374, 41514);
 """
 
-test_insert_students_py = """INSERT INTO TEST_STUDENTS_PY (EXTERNAL_UID
+insert_students_py = """INSERT INTO STUDENTS_PY (EXTERNAL_UID
 											, SCHOOLID
 											, STUDENT_NUMBER
 											, GIVEN_NAME
@@ -141,41 +141,18 @@ test_insert_students_py = """INSERT INTO TEST_STUDENTS_PY (EXTERNAL_UID
 											, %s, %s, %s, %s, %s
 											, %s, %s, %s, %s, %s)"""
 
-test_new_staff_and_students = """SELECT sp.EXTERNAL_UID 
+
+new_staff_and_students = """SELECT sp.EXTERNAL_UID 
 							, 'student'
-							FROM test_students_py AS sp
+							FROM students_py AS sp
 							LEFT OUTER JOIN bixby_user AS bu
 								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
 									AND bu.USER_TYPE = 'student'
 							WHERE sp.EXTERNAL_USERSTATUS = 1
 							AND sp.SUSPEND_ACCOUNT = 0
 							AND bu.PRIMARY_EMAIL IS NULL
-							AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
-
-								UNION 
-
-							SELECT sp.EXTERNAL_UID
-							, 'staff' 
-							FROM test_staff_py AS sp
-							LEFT OUTER JOIN bixby_user AS bu
-								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
-									AND bu.USER_TYPE = 'staff'
-							WHERE sp.EXTERNAL_USERSTATUS = 1 -- Changed Default Value True/Active (Previously 0 Active)
-							AND sp.SUSPEND_ACCOUNT = 0
-							AND bu.PRIMARY_EMAIL IS NULL"""
-
-
-## Previous Testing Queries unsure if they are still necessary
-old_test_new_staff_and_students = """SELECT sp.EXTERNAL_UID 
-							, 'student'
-							FROM students_py AS sp
-							LEFT OUTER JOIN bixby_user AS bu
-								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
-									AND bu.USER_TYPE = 'student'
-							WHERE sp.EXTERNAL_USERSTATUS = 0
-							AND sp.SUSPEND_ACCOUNT = 0
-							AND bu.PRIMARY_EMAIL IS NULL
-							AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+							-- AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+							AND '2017-09-02' BETWEEN sp.ENTRYDATE AND sp.EXITDATE
 
 								UNION 
 
@@ -185,10 +162,12 @@ old_test_new_staff_and_students = """SELECT sp.EXTERNAL_UID
 							LEFT OUTER JOIN bixby_user AS bu
 								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
 									AND bu.USER_TYPE = 'staff'
-							WHERE sp.EXTERNAL_USERSTATUS = 0
+							WHERE sp.EXTERNAL_USERSTATUS = 1 -- Changed Default Value True/Active (Previously 0 Active)
 							AND sp.SUSPEND_ACCOUNT = 0
 							AND bu.PRIMARY_EMAIL IS NULL"""
 
+
+## Previous Testing Queries unsure if they are still necessary
 
 test_new_staff_only = """SELECT sp.EXTERNAL_UID
 							, 'staff' 
@@ -201,7 +180,7 @@ test_new_staff_only = """SELECT sp.EXTERNAL_UID
 							AND bu.PRIMARY_EMAIL IS NULL"""							
 
 
-get_staff_from_sis = """SELECT t.USERS_DCID EXTERNAL_UID
+get_staff_from_ps = """SELECT t.USERS_DCID EXTERNAL_UID
 , t.id
 , t.schoolid
 , t.teachernumber
@@ -227,7 +206,7 @@ WHERE t.staffstatus IS NOT NULL
 	"""
 
 
-get_students_from_sis = """SELECT s.id EXTERNAL_UID
+get_students_from_ps = """SELECT s.id EXTERNAL_UID
 						, s.SCHOOLID
 						, s.STUDENT_NUMBER
 						, s.FIRST_NAME GIVEN_NAME
@@ -257,7 +236,7 @@ get_students_from_sis = """SELECT s.id EXTERNAL_UID
 
 
 # MySQL Queries
-insert_staff_py = """INSERT INTO STAFF_PY (EXTERNAL_UID
+insert_staff_py_ps = """INSERT INTO STAFF_PY_PS (EXTERNAL_UID
 						, STAFFID
 						, SCHOOLID
 						, TEACHERNUMBER
@@ -278,7 +257,7 @@ insert_staff_py = """INSERT INTO STAFF_PY (EXTERNAL_UID
 
 
 
-insert_students_py = """INSERT INTO STUDENTS_PY (EXTERNAL_UID
+insert_students_py_ps = """INSERT INTO STUDENTS_PY_PS (EXTERNAL_UID
 											, SCHOOLID
 											, STUDENT_NUMBER
 											, GIVEN_NAME
@@ -401,7 +380,7 @@ get_new_staff_py = """SELECT 'staff' AS USER_TYPE
 						WHERE sp.EXTERNAL_UID = %s"""
 
 
-new_staff_and_students = """SELECT sp.EXTERNAL_UID 
+new_staff_and_students_ps = """SELECT sp.EXTERNAL_UID 
 							, 'student'
 							FROM students_py AS sp
 							LEFT OUTER JOIN bixby_user AS bu
