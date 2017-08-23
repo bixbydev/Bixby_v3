@@ -37,8 +37,8 @@ PASSWORD_SALT = None
 
 # Google Service Configuration Section
 # Set Scope GtestGoogleApps or GoogleApps
-# GSCOPE = 'GoogleApps'
-GSCOPE = 'GtestGoogleApps'
+GSCOPE = 'GoogleApps'
+# GSCOPE = 'GtestGoogleApps'
 PRIMARY_DOMAIN = config.get(GSCOPE, 'PRIMARY_DOMAIN')
 STAFF_DOMAIN = unicode(PRIMARY_DOMAIN)
 STUDENT_DOMAIN = unicode(config.get(GSCOPE, 'STUDENT_DOMAIN'))

@@ -44,8 +44,8 @@ mcon = database.mysql.base.CursorWrapper()
 mc = mcon.cursor
 
 # Oracle SIS Connection
-ocon = database.oracle.base.CursorWrapper()
-oc = ocon.cursor
+#ocon = database.oracle.base.CursorWrapper()
+#oc = ocon.cursor
 
 # Postgres SIS Connection
 pcon = database.postgres.base.CursorWrapper()
@@ -54,7 +54,7 @@ pc = pcon.cursor
 
 def close_db_connections():
 	mcon.close()
-	ocon.close()
+	#ocon.close()
 	pcon.close()
 
 
@@ -277,8 +277,8 @@ def main():
 	us = ds.users()
 
 	# Pull/Refresh from PowerSchool
-	refresh_py_table(oc, mc, queries.get_staff_from_ps, queries.insert_staff_py_ps, 'staff_py_ps')
-	refresh_py_table(oc, mc, queries.get_students_from_ps, queries.insert_students_py_ps, 'students_py_ps')
+	#refresh_py_table(oc, mc, queries.get_staff_from_ps, queries.insert_staff_py_ps, 'staff_py_ps')
+	#refresh_py_table(oc, mc, queries.get_students_from_ps, queries.insert_students_py_ps, 'students_py_ps')
 
 	# Pull/Refresh from Illuminate
 	refresh_py_table(pc, mc, queries.get_staff_from_sis, queries.insert_staff_py, 'staff_py')
@@ -288,12 +288,13 @@ def main():
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
 	#sync_all_users_from_google(cursor=mc, user_service=us)
 	log.info('Updating Users')
-	users_list = current_users(mc, user_type='student', random=False)
+	users_list = current_users(mc, user_type='student', random=True, limit=10)
 	# refresh_users(users_list) # This is where the magic happens!
 	log.info('Adding New Users')
-	new_users = new_staff_and_students(mc, queries.new_staff_and_students)
-	print new_users
-	# refresh_users(new_users) 
+	# new_users = new_staff_and_students(mc, queries.new_staff_and_students)
+	new_users = new_staff_and_students(mc, queries.new_staff_only)
+	log.info(new_users)
+	refresh_users(new_users)
 
 	# Run the School Conferences
 	# groups.schoolconferences.main()

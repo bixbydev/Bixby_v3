@@ -166,19 +166,17 @@ new_staff_and_students = """SELECT sp.EXTERNAL_UID
 							AND sp.SUSPEND_ACCOUNT = 0
 							AND bu.PRIMARY_EMAIL IS NULL"""
 
-
-## Previous Testing Queries unsure if they are still necessary
-
-test_new_staff_only = """SELECT sp.EXTERNAL_UID
+new_staff_only = """							SELECT sp.EXTERNAL_UID
 							, 'staff' 
-							FROM test_staff_py AS sp
+							FROM staff_py AS sp
 							LEFT OUTER JOIN bixby_user AS bu
 								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
 									AND bu.USER_TYPE = 'staff'
-							WHERE sp.EXTERNAL_USERSTATUS = 0
+							WHERE sp.EXTERNAL_USERSTATUS = 1 -- Changed Default Value True/Active (Previously 0 Active)
 							AND sp.SUSPEND_ACCOUNT = 0
-							AND bu.PRIMARY_EMAIL IS NULL"""							
+							AND bu.PRIMARY_EMAIL IS NULL"""
 
+## Previous Testing Queries unsure if they are still necessary					
 
 get_staff_from_ps = """SELECT t.USERS_DCID EXTERNAL_UID
 , t.id
@@ -394,16 +392,6 @@ new_staff_and_students_ps = """SELECT sp.EXTERNAL_UID
 								UNION 
 
 							SELECT sp.EXTERNAL_UID
-							, 'staff' 
-							FROM staff_py AS sp
-							LEFT OUTER JOIN bixby_user AS bu
-								ON sp.EXTERNAL_UID = bu.EXTERNAL_UID
-									AND bu.USER_TYPE = 'staff'
-							WHERE sp.EXTERNAL_USERSTATUS = 0
-							AND sp.SUSPEND_ACCOUNT = 0
-							AND bu.PRIMARY_EMAIL IS NULL"""
-
-new_staff_only = """SELECT sp.EXTERNAL_UID
 							, 'staff' 
 							FROM staff_py AS sp
 							LEFT OUTER JOIN bixby_user AS bu
