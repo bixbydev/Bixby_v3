@@ -320,7 +320,7 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 
 		except BadUserName, e:
 			log.warn('Could Not Create Account for %s, %s, %s' 
-							(external_uid, user_type, e) )
+							%(external_uid, user_type, e))
 
 
 	def _is_existing_user(self, external_uid, user_type):

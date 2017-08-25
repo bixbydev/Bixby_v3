@@ -371,7 +371,7 @@ get_new_staff_py = """SELECT 'staff' AS USER_TYPE
 						, sp.MIDDLE_NAME
 						, sp.EXTERNAL_UID
 						, sp.SUSPEND_ACCOUNT AS SUSPENDED
-						, 0 AS CHANGE_PASSWORD
+						, 1 AS CHANGE_PASSWORD
 						, 1 GLOBAL_ADDRESSBOOK
 						, '/Staff' AS OU_PATH
 						FROM staff_py AS sp
