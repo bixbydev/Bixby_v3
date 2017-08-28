@@ -32,7 +32,7 @@ new_group_members = """SELECT g.GOOGLE_GROUPID
 								ON bu.GOOGLE_ID = gm.GOOGLE_USERID
 									AND g.GOOGLE_GROUPID = gm.GOOGLE_GROUPID
 							WHERE bu.SUSPENDED = 0
-							AND sp.EXTERNAL_USERSTATUS = 0
+							AND sp.EXTERNAL_USERSTATUS = 1 -- True/Active False/Inactive
 							AND gm.GOOGLE_GROUPID IS NULL
 							AND bu.GOOGLE_ID IS NOT NULL
 							-- LIMIT 1
