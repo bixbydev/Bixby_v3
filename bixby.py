@@ -289,21 +289,21 @@ def main():
 	#sync_all_users_from_google(cursor=mc, user_service=us)
 	log.info('Updating Users')
 	users_list = current_users(mc, user_type='student', random=True, limit=10)
-	# refresh_users(users_list) # This is where the magic happens!
+	refresh_users(users_list) # This is where the magic happens!
 	log.info('Adding New Users')
-	# new_users = new_staff_and_students(mc, queries.new_staff_and_students)
-	new_users = new_staff_and_students(mc, queries.new_staff_only)
+	new_users = new_staff_and_students(mc, queries.new_staff_and_students)
+	# new_users = new_staff_and_students(mc, queries.new_staff_only)
 	log.info(new_users)
 	refresh_users(new_users)
 
 	# Run the School Conferences
-	# groups.schoolconferences.main()
+	groups.schoolconferences.main()
 
 	# Run the Section Groups
 	# groups.sectiongroups.main()
 	
 	# Run the Year of Graduation (YOG) Groups
-	# groups.yoggroups.main()
+	groups.yoggroups.main()
 	
 	# Generate a Student Portal Login file
 	# psextras.student_portal_logins.main()

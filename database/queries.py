@@ -91,6 +91,7 @@ JOIN student_session_aff sa
 		AND sa.entry_date = (SELECT MAX(ssa.entry_date)
                          		FROM student_session_aff ssa
                          		WHERE ssa.student_id = sa.student_id
+                         			AND ssa.entry_date != ssa.leave_date -- Added this thinking it would help
                        				GROUP BY ssa.student_id)
 JOIN sessions ses
 	ON ses.session_id = sa.session_id
@@ -153,6 +154,7 @@ new_staff_and_students = """SELECT sp.EXTERNAL_UID
 							AND bu.PRIMARY_EMAIL IS NULL
 							-- AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
 							AND '2017-09-02' BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+							AND sp.SCHOOLID NOT IN ('20000000', '999999999', '6504', '122804')
 
 								UNION 
 
