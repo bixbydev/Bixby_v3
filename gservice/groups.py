@@ -613,7 +613,8 @@ def delete_group_members(members_query):
         for mem in chunk:
             print mem
             bg.delete_member(mem[0], mem[1])
-        time.sleep(2)
+            time.sleep(0.1)
+        time.sleep(1)
         bg.execute()
 
 
