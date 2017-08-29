@@ -78,8 +78,8 @@ SELECT DISTINCT st.section_id AS SECTIONID
 , st.section_id AS SECTION_NUMBER
 
 , crs.short_name AS COURSE_NAME
---, tb.timeblock_name Period
-, CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END
+-- , tb.timeblock_name Period
+-- , CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END
 
 
 FROM  section_teacher_aff st
