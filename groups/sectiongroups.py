@@ -49,17 +49,17 @@ get_illuminate_sections = """WITH school_map AS (SELECT sch.site_id
 , sch.site_name
 FROM sites sch)
 
-SELECT st.section_id AS SECTIONID
+SELECT DISTINCT st.section_id AS SECTIONID
 
 , sch.site_id AS SCHOOLID
 , LOWER('z'||sm.SiteShortName||'-'
-	||SUBSTR(tr.term_name, 1,2)||'-'
+	||CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END||'-'
 	||SUBSTR(u.first_name, 1, 1)||'-'
 	||REGEXP_REPLACE(u.last_name, '\W+', '','g'))
 	||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') THEN '-'||REGEXP_REPLACE(LOWER(tb.timeblock_name), '\W+', '','g') ELSE '' END
 	||'@berkeley.net' GROUP_EMAIL
 , 'z '||sm.SiteShortName||' '
-	||SUBSTR(tr.term_name, 1,2)||' '
+	||CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END||' '
 	||SUBSTR(u.first_name, 1, 1)||'-'
 	||u.last_name
 	||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') THEN '-'||REGEXP_REPLACE(LOWER(tb.timeblock_name), '\W+', '', 'g') ELSE '' END Group_Name
@@ -69,7 +69,7 @@ SELECT st.section_id AS SECTIONID
   ||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') THEN crs.short_name
     ELSE tr.term_name||' Period '||REGEXP_REPLACE(tb.timeblock_name, '\W+', '','g') END GROUP_DESCRIPTION
     
-, tr.term_id AS TERMID
+-- , tr.term_id AS TERMID
 , u.user_id AS GROUP_OWNER
 -- , u.local_user_id
 -- , u.last_name
@@ -79,6 +79,7 @@ SELECT st.section_id AS SECTIONID
 
 , crs.short_name AS COURSE_NAME
 --, tb.timeblock_name Period
+, CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END
 
 
 FROM  section_teacher_aff st
@@ -108,7 +109,10 @@ FROM  section_teacher_aff st
 WHERE ses.academic_year = 2018
 AND gl.short_name IN ('TK','K','1','2','3','4','5','6','7','8','9','10','11','12')
 AND sch.exclude_from_state_reporting = '0'
-ORDER BY group_email
+
+-- AND u.user_id = 43
+
+ORDER BY sectionid, group_email;
 """
 
 get_illuminate_schedules = """SELECT ssa.ssa_id as ps_id
