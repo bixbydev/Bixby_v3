@@ -2,7 +2,6 @@
 *.ini
 *.log
 *.json
-*.sql
 
 *.sublime-project
 *.sublime-workspace
