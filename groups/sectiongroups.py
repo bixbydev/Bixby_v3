@@ -49,27 +49,51 @@ get_illuminate_sections = """WITH school_map AS (SELECT sch.site_id
 , sch.site_name
 FROM sites sch)
 
-SELECT DISTINCT st.section_id AS SECTIONID
 
+SELECT DISTINCT SECTIONID
+, SCHOOLID
+, GROUP_EMAIL
+, GROUP_NAME
+, GROUP_DESCRIPTION
+, GROUP_OWNER
+, COURSE_NUMBER
+, COURSE_NAME
+, 1 AS TERMID
+
+FROM (SELECT st.section_id AS SECTIONID
 , sch.site_id AS SCHOOLID
-, LOWER('z'||sm.SiteShortName||'-'
-	||CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END||'-'
-	||SUBSTR(u.first_name, 1, 1)||'-'
-	||REGEXP_REPLACE(u.last_name, '\W+', '','g'))
-	||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') THEN '-'||REGEXP_REPLACE(LOWER(tb.timeblock_name), '\W+', '','g') ELSE '' END
-	||'@berkeley.net' GROUP_EMAIL
-, 'z '||sm.SiteShortName||' '
-	||CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END||' '
-	||SUBSTR(u.first_name, 1, 1)||'-'
-	||u.last_name
-	||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') THEN '-'||REGEXP_REPLACE(LOWER(tb.timeblock_name), '\W+', '', 'g') ELSE '' END Group_Name
 
-, sm.SiteShortName||' '
-  ||u.Last_Name||' '
-  ||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') THEN crs.short_name
-    ELSE tr.term_name||' Period '||REGEXP_REPLACE(tb.timeblock_name, '\W+', '','g') END GROUP_DESCRIPTION
-    
--- , tr.term_id AS TERMID
+-- , REGEXP_REPLACE(LOWER(tb.timeblock_name), '\(.+?\)\s*|^period|6/7/8| ', '','g') period_name
+
+, LOWER('Z-'||REGEXP_REPLACE(u.last_name, '\W+', '','g')||'-'
+    ||SUBSTR(u.first_name, 1, 1)
+    ||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') 
+        THEN '-P'||REGEXP_REPLACE(LOWER(tb.timeblock_name), '\(.+?\)\s*|^period|6/7/8| ', '','g') 
+        ELSE '' 
+    END
+    ||'-'||CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y-' ELSE SUBSTR(tr.term_name, 1,2)||'-' END
+    ||sm.SiteShortName||'-1718')||'@berkeley.net' AS GROUP_EMAIL
+
+, 'Z-'||REGEXP_REPLACE(u.last_name, '\W+', '','g')||' '
+    ||SUBSTR(u.first_name, 1, 1)
+    ||CASE WHEN gl.short_name IN ('6','7','8','9','10','11','12') 
+        THEN ' P'||REGEXP_REPLACE(LOWER(tb.timeblock_name), '\(.+?\)\s*|^period|6/7/8| ', '','g') 
+        ELSE ''
+    END
+    ||' '||CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y ' ELSE SUBSTR(tr.term_name, 1,2)||' ' END
+    ||sm.SiteShortName||' 17/18' AS GROUP_NAME
+
+, sm.site_name||' '||u.Last_Name||' '||SUBSTR(u.first_name, 1, 1)||' '
+  ||CASE WHEN gl.short_name IN ('TK', 'K', '1', '2', '3', '4', '5') THEN crs.short_name
+    ELSE 
+        CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 
+            THEN 'Y' 
+            ELSE SUBSTR(tr.term_name, 1,2) 
+        END
+    ||' Period '||REGEXP_REPLACE(LOWER(tb.timeblock_name), '\(.+?\)\s*|^period|6/7/8| ', '','g') 
+    END GROUP_DESCRIPTION
+
+, tr.term_id AS TERMID
 , u.user_id AS GROUP_OWNER
 -- , u.local_user_id
 -- , u.last_name
@@ -78,9 +102,9 @@ SELECT DISTINCT st.section_id AS SECTIONID
 , st.section_id AS SECTION_NUMBER
 
 , crs.short_name AS COURSE_NAME
--- , tb.timeblock_name Period
--- , CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END
-
+--, tb.timeblock_name Period
+--, CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END
+, dense_rank() OVER (PARTITION BY st.section_id ORDER BY u.last_name, crs.short_name) RNK
 
 FROM  section_teacher_aff st
 	JOIN section_term_aff sta
@@ -111,8 +135,12 @@ AND gl.short_name IN ('TK','K','1','2','3','4','5','6','7','8','9','10','11','12
 AND sch.exclude_from_state_reporting = '0'
 
 -- AND u.user_id = 43
+-- AND st.section_id IN (144701, 144513)
+AND st.section_id != 112037 -- Dana Moran's Duplicate Section
 
-ORDER BY sectionid, group_email;
+ORDER BY group_email
+) AS ranked_groups
+WHERE RNK = 1;
 """
 
 get_illuminate_schedules = """SELECT ssa.ssa_id as ps_id
@@ -121,6 +149,7 @@ get_illuminate_schedules = """SELECT ssa.ssa_id as ps_id
 , ses.site_id AS schoolid
 , ssa.entry_date AS dateenrolled
 , CASE WHEN ssa.leave_date IS NULL THEN tr.end_date ELSE ssa.leave_date END AS dateleft
+, sta.term_id
 FROM section_student_aff AS ssa
 JOIN section_term_aff AS sta
     ON ssa.section_id = sta.section_id
@@ -130,56 +159,7 @@ JOIN sessions AS ses
     ON tr.session_id = ses.session_id
 -- WHERE current_date BETWEEN tr.start_date AND tr.end_date
 WHERE '2017-08-29' BETWEEN tr.start_date AND tr.end_date"""
-
-
-
-get_sections_from_ps = """SELECT sec.id sectionid
-, sec.schoolid
-, LOWER('z'||sch.abbreviation||'-'
-	||SUBSTR(tr.abbreviation, 1,2)||'-'
-	||SUBSTR(t.first_name, 1, 1)||'-'
-	||REGEXP_REPLACE(t.last_name, '[[:punct:][:space:]]')
-	||CASE WHEN sch.high_grade > 5 THEN '-'||REGEXP_REPLACE(p.abbreviation, '(\+)', 'p') ELSE '' END
-	||'@berkeley.net') GROUP_EMAIL
-  
-, 'z '||sch.abbreviation||' '
-||SUBSTR(tr.abbreviation, 1,2)||' '
-||SUBSTR(t.first_name, 1, 1)||'-'
-||t.last_name
-||CASE WHEN sch.high_grade > 5 THEN ' - '||REGEXP_REPLACE(p.abbreviation, '(\+)', 'p') ELSE '' END Group_Name
-
-, sch.abbreviation||' '
-  ||t.Last_Name||' '
-  ||CASE WHEN sch.high_grade=5 THEN crs.course_name
-    ELSE tr.name||' Period '||REGEXP_REPLACE(p.abbreviation, '(\+)', 'p') END GROUP_DESCRIPTION
-
-, sec.termid 
-, t.users_dcid GROUP_OWNER -- EXTERNAL_UID
-, sec.course_number
-, sec.section_number
-, crs.course_name
-
-FROM sections sec
-JOIN terms tr
-  ON sec.termid = tr.id
-    AND sec.schoolid = tr.schoolid
-JOIN courses crs
-  ON sec.course_number = crs.course_number
-JOIN teachers t
-  ON sec.teacher = t.id
-JOIN period p 
-  ON p.schoolid=sec.schoolid 
-	AND p.year_id=SUBSTR(sec.termid, 0, 2) 
-	AND p.period_number=SUBSTR(REGEXP_REPLACE(sec.expression, '[[:punct:][:alpha:]]'), 0 , 2)
-JOIN schools sch
-  ON sec.schoolid = sch.school_number
-  
-WHERE sec.termid BETWEEN 2600 AND 2610
-AND (sch.high_grade > 5
-OR sec.course_number LIKE '_000'
-OR sec.course_number = 'SDC01')
-
-""" 
+ 
 
 get_cc_schedule_from_ps = """SELECT id ps_id
 , studentid
@@ -315,7 +295,7 @@ def refresh_section_groups_data():
 	util.copy_foreign_table(pc, get_illuminate_sections, mcurs, 'sections_py')
 
 	mcurs.execute('TRUNCATE TABLE studentschedule_py')
-	util.copy_foreign_table(ps, get_illuminate_schedules, mcurs, 'studentschedule_py')
+	util.copy_foreign_table(pc, get_illuminate_schedules, mcurs, 'studentschedule_py')
 
 	mcon.close()
 	pc.close()
