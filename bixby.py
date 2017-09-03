@@ -18,6 +18,7 @@
 import json
 import csv
 import sys
+import time
 from logger.log import log
 from googleapiclient.model import makepatch
 
@@ -242,10 +243,12 @@ def current_users(cursor, user_type=None, random=False, limit=None):
 					FROM bixby_user
 					"""
 	if user_type in ('staff', 'student'):
-		sql += '\nWHERE USER_TYPE = %s'
+		sql += """\nWHERE USER_TYPE = %s"""
 		params.append(user_type)
 	else:
-		sql += '\nWHERE USER_TYPE IS NOT NULL'
+		sql += """\nWHERE USER_TYPE IN ('staff', 'student')"""
+
+	sql += """\nAND external_uid IS NOT NULL"""
 
 	if random == True:
 		sql += '\nORDER BY RAND()'
@@ -288,7 +291,8 @@ def main():
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
 	#sync_all_users_from_google(cursor=mc, user_service=us)
 	log.info('Updating Users')
-	users_list = current_users(mc, user_type='student', random=True, limit=10)
+	users_list = current_users(mc, user_type='student', random=False, limit=None)
+	time.sleep(5)
 	refresh_users(users_list) # This is where the magic happens!
 	log.info('Adding New Users')
 	new_users = new_staff_and_students(mc, queries.new_staff_and_students)
@@ -300,10 +304,10 @@ def main():
 	groups.schoolconferences.main()
 
 	# Run the Section Groups
-	# groups.sectiongroups.main()
+	groups.sectiongroups.main()
 	
 	# Run the Year of Graduation (YOG) Groups
-	groups.yoggroups.main()
+	# groups.yoggroups.main()
 	
 	# Generate a Student Portal Login file
 	# psextras.student_portal_logins.main()

@@ -69,7 +69,8 @@ SELECT s.student_id EXTERNAL_UID
 , house.house_name Area
 , sa.entry_date
 , sa.leave_date
-, CASE WHEN '2017-09-10' BETWEEN sa.entry_date AND sa.leave_date THEN 1 ELSE 0 END EXTERNAL_USERSTATUS
+-- , CASE WHEN '2017-09-10' BETWEEN sa.entry_date AND sa.leave_date THEN 1 ELSE 0 END EXTERNAL_USERSTATUS
+, CASE WHEN current_date BETWEEN sa.entry_date AND sa.leave_date THEN 1 ELSE 0 END EXTERNAL_USERSTATUS
 , CASE WHEN cf.custom_field_busd_email_suspend=true THEN 1 ELSE 0 END Email_Suspend
 -- , cf.custom_field_busd_email_suspend
 , cf.custom_field_busd_override_email EMAIL_OVERRIDE

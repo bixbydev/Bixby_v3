@@ -368,6 +368,7 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 			change_password = True
 
 		elif user_type == 'student':
+			log.info('Student: External_Uid '+str(external_uid))
 			q =  queries.get_new_student_py
 			self.cursor.execute(queries.get_student_number, (external_uid,))
 			password = self.cursor.fetchone()[0]
