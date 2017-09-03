@@ -22,7 +22,7 @@ END_TERM = START_TERM + 10
 
 get_illuminate_sections = """WITH school_map AS (SELECT sch.site_id
 , CASE WHEN sch.site_id = 6097729 THEN 'BAM'
-	WHEN sch.site_id = 131177 THEN 'BHS' 
+    WHEN sch.site_id = 131177 THEN 'BHS' 
     WHEN sch.site_id = 134924 THEN 'BTA'
     WHEN sch.site_id = 122804 THEN 'Pre'
     WHEN sch.site_id = 6090195 THEN 'Crag'
@@ -49,7 +49,6 @@ get_illuminate_sections = """WITH school_map AS (SELECT sch.site_id
 , sch.site_name
 FROM sites sch)
 
-
 SELECT DISTINCT SECTIONID
 , SCHOOLID
 , GROUP_EMAIL
@@ -60,7 +59,8 @@ SELECT DISTINCT SECTIONID
 , COURSE_NAME
 , 1 AS TERMID
 
-FROM (SELECT st.section_id AS SECTIONID
+FROM (
+SELECT st.section_id AS SECTIONID
 , sch.site_id AS SCHOOLID
 
 -- , REGEXP_REPLACE(LOWER(tb.timeblock_name), '\(.+?\)\s*|^period|6/7/8| ', '','g') period_name
@@ -104,39 +104,40 @@ FROM (SELECT st.section_id AS SECTIONID
 , crs.short_name AS COURSE_NAME
 --, tb.timeblock_name Period
 --, CASE WHEN COUNT(*) OVER (PARTITION BY st.section_id) > 1 THEN 'Y' ELSE SUBSTR(tr.term_name, 1,2) END
-, dense_rank() OVER (PARTITION BY st.section_id ORDER BY u.last_name, crs.short_name) RNK
+, dense_rank() OVER (PARTITION BY st.section_id ORDER BY u.last_name, crs.short_name, tb.timeblock_name) RNK
 
 FROM  section_teacher_aff st
-	JOIN section_term_aff sta
-    	ON st.section_id = sta.section_id
+    JOIN section_term_aff sta
+        ON st.section_id = sta.section_id
     JOIN terms tr
-    	ON tr.term_id = sta.term_id
+        ON tr.term_id = sta.term_id
     JOIN sessions ses
-    	ON ses.session_id = tr.session_id
-	JOIN sites sch
-    	ON sch.site_id = ses.site_id
+        ON ses.session_id = tr.session_id
+    JOIN sites sch
+        ON sch.site_id = ses.site_id
     LEFT OUTER JOIN grade_levels gl
-		ON gl.grade_level_id = sch.start_grade_level_id
-	JOIN section_course_aff sca
-		ON sca.section_id = st.section_id
-	JOIN courses crs
-		ON crs.course_id = sca.course_id
+        ON gl.grade_level_id = sch.start_grade_level_id
+    JOIN section_course_aff sca
+        ON sca.section_id = st.section_id
+    JOIN courses crs
+        ON crs.course_id = sca.course_id
     JOIN section_timeblock_aff stb
-    	ON stb.section_id = st.section_id
+        ON stb.section_id = st.section_id
     JOIN timeblocks tb
-    	ON tb.timeblock_id = stb.timeblock_id
-	JOIN users u
-		ON u.user_id = st.user_id
+        ON tb.timeblock_id = stb.timeblock_id
+    JOIN users u
+        ON u.user_id = st.user_id
     JOIN school_map AS sm
         ON sch.site_id = sm.site_id
 
 WHERE ses.academic_year = 2018
+AND st.primary_teacher = True
 AND gl.short_name IN ('TK','K','1','2','3','4','5','6','7','8','9','10','11','12')
 AND sch.exclude_from_state_reporting = '0'
 
 -- AND u.user_id = 43
--- AND st.section_id IN (144701, 144513)
-AND st.section_id != 112037 -- Dana Moran's Duplicate Section
+-- AND st.section_id IN (144701, 144513, 114029, 117441, 113595, 112037)
+-- AND st.section_id != 112037 -- Dana Moran's Duplicate Section
 
 ORDER BY group_email
 ) AS ranked_groups
@@ -149,7 +150,7 @@ get_illuminate_schedules = """SELECT ssa.ssa_id as ps_id
 , ses.site_id AS schoolid
 , ssa.entry_date AS dateenrolled
 , CASE WHEN ssa.leave_date IS NULL THEN tr.end_date ELSE ssa.leave_date END AS dateleft
-, sta.term_id
+, sta.term_id termid
 FROM section_student_aff AS ssa
 JOIN section_term_aff AS sta
     ON ssa.section_id = sta.section_id
@@ -157,8 +158,10 @@ JOIN terms AS tr
     ON sta.term_id = tr.term_id
 JOIN sessions AS ses
     ON tr.session_id = ses.session_id
--- WHERE current_date BETWEEN tr.start_date AND tr.end_date
-WHERE '2017-08-29' BETWEEN tr.start_date AND tr.end_date"""
+WHERE current_date BETWEEN tr.start_date AND tr.end_date
+-- WHERE '2017-08-29' BETWEEN tr.start_date AND tr.end_date
+
+"""
  
 
 get_cc_schedule_from_ps = """SELECT id ps_id
@@ -184,9 +187,10 @@ LEFT OUTER JOIN groups g
 		AND g.GROUP_TYPE = 'StudentSection'
 WHERE g.GROUP_EMAIL IS NULL
 	-- AND LOWER(sp.group_email) LIKE LOWER('zBHS-%')
+    -- AND sp.group_owner IN (405, 270)
 """
 
-new_group_owners = """SELECT g.GOOGLE_GROUPID
+new_group_owners = """SELECT DISTINCT g.GOOGLE_GROUPID
 , bu.GOOGLE_ID
 , 'OWNER' AS role
 , g.GROUP_EMAIL
@@ -304,10 +308,10 @@ def refresh_section_groups_data():
 
 def main():
 	refresh_section_groups_data()
-	#gservice.groups.insert_new_groups(new_section_groups)
-	#gservice.groups.insert_new_group_members(new_group_owners)
+	gservice.groups.insert_new_groups(new_section_groups)
+	gservice.groups.insert_new_group_members(new_group_owners)
 	#gservice.groups.delete_group_members(stale_group_owners)
-	#gservice.groups.insert_new_group_members(new_student_group_members)
+	gservice.groups.insert_new_group_members(new_student_group_members)
 	
 
 if __name__ == '__main__':
