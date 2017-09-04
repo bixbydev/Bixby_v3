@@ -667,7 +667,7 @@ def refresh_all_group_members(overwrite=False):
 def batch_delete_groups(list_of_groupids):
     """Takes a list of group keys, they must be the Google Unique Group ID"""
     bg = BatchGroups()
-    chunked_groups = util.list_chunks(list_of_groupids, 200)
+    chunked_groups = util.list_chunks(list_of_groupids, 20)
     for groups in chunked_groups:
         time.sleep(5)
         print 'Chunked'
@@ -679,12 +679,12 @@ def batch_delete_groups(list_of_groupids):
         bg.execute() # Delete the Extra Groups
 
 
-def pull_groups():
+def pull_groups(group_type='StudentSection'):
     m = CursorWrapper()
-    m.cursor.execute("""SELECT GOOGLE_GROUPID
+    query = """SELECT GOOGLE_GROUPID
                         FROM groups g
-                        WHERE g.GROUP_TYPE = 'StudentSection'""")
-
+                        WHERE g.GROUP_TYPE = %s"""
+    m.cursor.execute(query, (group_type,))
     groups = m.cursor.fetchall()
     return [i[0] for i in groups]
 

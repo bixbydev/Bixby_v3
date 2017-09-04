@@ -307,7 +307,7 @@ def main():
 	groups.sectiongroups.main()
 	
 	# Run the Year of Graduation (YOG) Groups
-	# groups.yoggroups.main()
+	groups.yoggroups.main()
 	
 	# Generate a Student Portal Login file
 	# psextras.student_portal_logins.main()

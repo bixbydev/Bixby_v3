@@ -28,7 +28,8 @@ LEFT OUTER JOIN groups AS g
         AND dpt.sitecode = g.DEPARTMENT_ID
 WHERE g.GROUP_EMAIL IS NULL
     AND sites.AUTO_EXCLUDE = 0
-    AND sites.UPPER_UNIT > 5""".format(CALCULATION_YEAR)
+    AND sites.UPPER_UNIT > 5
+    AND dpt.SITECODE != 6504""".format(CALCULATION_YEAR)
 
 
 stale_yog_members = """SELECT gm.GOOGLE_GROUPID
@@ -78,12 +79,16 @@ LEFT OUTER JOIN group_member AS gm
 	ON bu.google_id = gm.GOOGLE_USERID
 		AND g.GOOGLE_GROUPID = gm.GOOGLE_GROUPID
 
-WHERE gm.id IS NULL""".format(CALCULATION_YEAR)
+WHERE gm.id IS NULL
+AND curdate() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+AND sp.EXTERNAL_USERSTATUS = 1
+AND sp.GRADE_LEVEL >= 9;
+""".format(CALCULATION_YEAR)
 
 
 def main():
 	gservice.groups.insert_new_groups(new_yog_groups)
-	gservice.groups.delete_group_members(stale_yog_members)
+	#gservice.groups.delete_group_members(stale_yog_members)
 	gservice.groups.insert_new_group_members(new_yog_members)
 	
 
