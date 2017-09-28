@@ -74,7 +74,7 @@ SELECT s.student_id EXTERNAL_UID
 , CASE WHEN cf.custom_field_busd_email_suspend=true THEN 1 ELSE 0 END Email_Suspend
 -- , cf.custom_field_busd_email_suspend
 , cf.custom_field_busd_override_email EMAIL_OVERRIDE
-, NULL STUDENT_WEB_ID
+, s.email STUDENT_WEB_ID
 , NULL PARENT_WEB_ID
 , 1 STUDENT_ALLOWWEBACCESS
 , 1 PARENT_ALLOWWEBACCESS
@@ -153,8 +153,8 @@ new_staff_and_students = """SELECT sp.EXTERNAL_UID
 							WHERE sp.EXTERNAL_USERSTATUS = 1
 							AND sp.SUSPEND_ACCOUNT = 0
 							AND bu.PRIMARY_EMAIL IS NULL
-							-- AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
-							AND '2017-09-02' BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+							AND current_date() BETWEEN sp.ENTRYDATE AND sp.EXITDATE
+							-- AND '2017-09-02' BETWEEN sp.ENTRYDATE AND sp.EXITDATE
 							AND sp.SCHOOLID NOT IN ('20000000', '999999999', '6504', '122804')
 
 								UNION 
