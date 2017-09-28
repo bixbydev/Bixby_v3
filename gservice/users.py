@@ -341,6 +341,7 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 		self.bixby_id = bixby_user[0]
 
 	def __get_user_key(self):
+		# User Key is GoogleID unless GoogleID is null then it is primaryEmail
 		self.cursor.execute(queries.get_user_key, (self.bixby_id,))
 		return self.cursor.fetchone()[0]
 
@@ -348,6 +349,7 @@ class BixbyUser(BaseUser, CursorWrapper, DirectoryService):
 		"""Looks in the bixby_user table and returns a google object"""
 		params = """WHERE bu.id = %s"""
 		q = queries.get_userinfo_vary_params %params
+		# There is a join on the orgunit table that will make this fail if the ou doesn't exist.
 		self.cursor.execute(q, (bixby_id,))
 		self.columns = [ i[0] for i in self.cursor.description ]
 		self.values = self.cursor.fetchone()
