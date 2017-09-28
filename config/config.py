@@ -73,8 +73,8 @@ OU_CSV_FILE_PATH = config.get('Bixby', 'orgunitcsvfile')
 
 
 # MySQL Configuration Section
-# MYSQL_CONNECTION_NAME = 'MySQL'
-MYSQL_CONNECTION_NAME = 'MySQLTest'
+MYSQL_CONNECTION_NAME = 'MySQL'
+# MYSQL_CONNECTION_NAME = 'MySQLTest'
 MYSQL_BACKUPPATH = os.path.join(PRIVATE_DIRECTORY, config.get(MYSQL_CONNECTION_NAME, 'backup_path'))
 MYSQL_DB = config.get(MYSQL_CONNECTION_NAME, 'db')
 MYSQL_HOST = config.get(MYSQL_CONNECTION_NAME, 'host')
@@ -117,6 +117,14 @@ PG_USER = config.get('Postgres', 'user')
 PG_PASSWORD = config.get('Postgres', 'password')
 PG_DB = config.get('Postgres', 'database')
 PG_PORT = config.get('Postgres', 'port')
+
+
+if 'Custom' in config.sections():
+	CUSTOM_PARAMETERS = {}
+	items = config.items('Custom')
+	for i in items:
+		CUSTOM_PARAMETERS[i[0]] = i[1]
+
 
 
 def main():

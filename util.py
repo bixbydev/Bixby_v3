@@ -131,14 +131,14 @@ def insert_json_payload(table, payload, cursor=None):
 		cursor.execute(sql, values)
 
 
-def csv_from_sql(query, file_output_path, file_name, cursor, header=True):
+def csv_from_sql(query, file_output_path, file_name, cursor, header=True, file_delimiter=','):
 	full_file_path = os.path.join(file_output_path, file_name)
 	f = open(full_file_path, 'wb')
 	#log.info('Querying DB')
 	cursor.execute(query)
 	queryresults = cursor.fetchall()
 	#log.info('Writing file: %s' % file_name)
-	csvwriter = csv.writer(f, delimiter=',', quotechar='"',
+	csvwriter = csv.writer(f, delimiter=file_delimiter, quotechar='"',
 							quoting=csv.QUOTE_MINIMAL)
 	if header:
 		csvwriter.writerow([i[0] for i in cursor.description])
