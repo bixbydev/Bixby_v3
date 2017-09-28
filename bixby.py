@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Filename: services.py
+# Filename: bixby.py
 
 #=====================================================================#
 # Copyright (c) 2015 Bradley Hilton <bradleyhilton@bradleyhilton.com> #
@@ -33,7 +33,8 @@ from config import config
 import groups.schoolconferences
 import groups.sectiongroups
 import groups.yoggroups
-import psextras.student_portal_logins
+import extras.isiupdates
+# import extras.student_portal_logins
 
 
 log.info('Starting Bixby')
@@ -290,15 +291,20 @@ def main():
 
 	#dump_all_users_json(file_path=config.ALL_USERS_JSON)
 	#sync_all_users_from_google(cursor=mc, user_service=us)
-	log.info('Updating Users')
-	users_list = current_users(mc, user_type='student', random=False, limit=None)
-	time.sleep(5)
-	refresh_users(users_list) # This is where the magic happens!
 	log.info('Adding New Users')
 	new_users = new_staff_and_students(mc, queries.new_staff_and_students)
 	# new_users = new_staff_and_students(mc, queries.new_staff_only)
 	log.info(new_users)
 	refresh_users(new_users)
+	log.info("Finished Adding New Users")
+	time.sleep(5)
+
+	log.info('Updating Users')
+	users_list = current_users(mc, user_type=None, random=False, limit=None)
+	refresh_users(users_list) # This is where the magic happens!
+	log.info("Finished Updating Users")
+	time.sleep(5)
+
 
 	# Run the School Conferences
 	groups.schoolconferences.main()
@@ -308,16 +314,18 @@ def main():
 	
 	# Run the Year of Graduation (YOG) Groups
 	groups.yoggroups.main()
+
+	close_db_connections()
 	
 	# Generate a Student Portal Login file
 	# psextras.student_portal_logins.main()
-
-
+	extras.isiupdates.main()
 
 
 if __name__ == '__main__':
 	main()
-	close_db_connections()
+	
+
 	
 
 
