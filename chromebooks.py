@@ -117,6 +117,7 @@ class Devices(object):
 				platformVersion = i.get('platformVersion')
 				lastSync = util.return_datetime(i.get('lastSync'))
 				status = i.get('status')
+				print serialNumber
 				csvwriter.writerow([serialNumber, deviceId, macAddress, 
 					annotatedAssetId, annotatedLocation, annotatedUser, notes, 
 					orgUnitPath, model, platformVersion, lastSync, status])
@@ -161,7 +162,7 @@ def json_dump_csv(csv_file_path, json):
 	
 
 def read_csv_updates(csv_file_path):
-	with open(csv_file_path, 'rb') as f:
+	with open(csv_file_path, 'rbu') as f:
 		csvreader = csv.reader(f, delimiter=',', quotechar='\"')
 		updates = []
 		headers = csvreader.next()
