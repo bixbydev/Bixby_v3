@@ -85,7 +85,7 @@ def main():
 	isi_cursor = pcon.cursor
 
 	update_list = get_address_list(bixby_cursor)
-	# update_isi_student_email(isi_cursor, update_list)
+	update_isi_student_email(isi_cursor, update_list)
 	update_isi_student_portal_accounts(isi_cursor)
 
 	mcon.close()
